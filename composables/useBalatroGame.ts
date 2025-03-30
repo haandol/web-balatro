@@ -44,6 +44,7 @@ export function useBalatroGame() {
         if (cardsToDraw > 0) {
             const newCards = gameStore.deck.splice(0, cardsToDraw);
             gameStore.playerHand.push(...newCards);
+            gameStore.cardsLeft = gameStore.deck.length;
         }
     };
 
@@ -96,12 +97,17 @@ export function useBalatroGame() {
                 return;
             } else {
                 console.log(`Advancing to Ante ${gameStore.currentAnteIndex + 1}`);
-                initializeDeck();
-                shuffleDeck();
-                // 새 안테에서는 플레이어 핸드를 비우고 다시 시작
-                gameStore.playerHand = [];
             }
+        } else {
+            console.log(`Advancing to next Blind in Ante ${gameStore.currentAnteIndex + 1}`);
         }
+
+        // 모든 블라인드 변경 시 덱 초기화 및 셔플
+        initializeDeck();
+        shuffleDeck();
+        // 새 블라인드에서는 플레이어 핸드를 비우고 다시 시작
+        gameStore.playerHand = [];
+
         startNextBlind();
     };
 

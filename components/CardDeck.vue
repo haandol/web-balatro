@@ -15,31 +15,30 @@
       <!-- 맨 위의 메인 카드 -->
       <div
         class="absolute w-full h-full bg-slate-800 rounded-lg border-[3px] border-slate-600 shadow-lg flex justify-center items-center z-[2]">
-        <div class="w-[90%] h-[90%] bg-slate-900 rounded-md flex justify-center items-center">
+        <div class="w-[90%] h-[90%] bg-slate-900 rounded-md flex flex-col justify-center items-center">
           <div
             class="w-4/5 h-4/5 rounded border-[3px] border-[#406080] bg-[linear-gradient(45deg,#406080_25%,transparent_25%),linear-gradient(-45deg,#406080_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#406080_75%),linear-gradient(-45deg,transparent_75%,#406080_75%)] bg-[length:10px_10px] bg-[position:0_0,0_5px,5px_-5px,-5px_0px]">
           </div>
+          <div class="text-white font-['Press_Start_2P'] text-xs mt-2">
+            {{ cardsLeft }}/52
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="w-full p-2.5 bg-slate-800/80 rounded-md text-white font-['Press_Start_2P'] text-xs text-center">
-      <div class="flex justify-between mb-1.5">
-        <span class="text-gray-300">남은 핸드:</span>
-        <span class="text-yellow-400 font-bold">{{ handsLeft }}</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-gray-300">남은 버리기:</span>
-        <span class="text-yellow-400 font-bold">{{ discardsLeft }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  handsLeft: number;
-  discardsLeft: number;
-}>();
+import { storeToRefs } from 'pinia'
+import { useGameStore } from '~/stores/game'
+
+const gameStore = useGameStore()
+const { cardsLeft, handsLeft, discardsLeft } = storeToRefs(gameStore)
+
+// 게임 초기화
+onMounted(() => {
+  gameStore.initializeDeck()
+})
 </script>
 
 <style lang="postcss" scoped>

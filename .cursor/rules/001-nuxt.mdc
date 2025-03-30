@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Project Overview
 
-This project is a mobile-friendlyhe game rules are provided in `@game-rule.mdc`.
+This project is a mobile-friendlyhe game rules are provided in [SPEC.md](mdc:SPEC.md)
 
 ## Core Technologies & Expertise
 
@@ -84,8 +84,24 @@ It requires expert-level proficiency in Vue 3, Nuxt 3, TypeScript, Node.js, Vite
 
 - Use Pinia for global state management.
 - Maintain reactivity with `storeToRefs`.
+- Use Composition API.
 - Implement proper store typings.
 - Follow a modular store pattern.
+
+<example>
+```typescript
+export const useCounterStore = defineStore('counter', () => {
+  const count = ref(0)
+  const name = ref('Eduardo')
+  const doubleCount = computed(() => count.value * 2)
+  function increment() {
+    count.value++
+  }
+
+  return { count, name, doubleCount, increment }
+})
+```
+</example>
 
 ## Performance Optimization
 
