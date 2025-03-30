@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "primeicons/primeicons.css";
+
+/* 사용자 정의 스타일을 여기에 추가할 수 있습니다 */

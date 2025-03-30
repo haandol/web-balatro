@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Nuxt3 Developer Guideline
+
+## Project Overview
+
+This project is a mobile-friendlyhe game rules are provided in `@game-rule.mdc`.
+
+## Core Technologies & Expertise
+
+This project is implemented using Client-Side Rendering (CSR) without any server interactions.
+
+It requires expert-level proficiency in Vue 3, Nuxt 3, TypeScript, Node.js, Vite, Vue Router, Pinia, VueUse, Nuxt UI, and Tailwind CSS, following best practices and performance optimization techniques.
+
+## Code Style & Architecture
+
+### Core Principles
+
+- Write clean, maintainable TypeScript code with clear intent.
+- Prefer functional and declarative patterns over imperative ones.
+- Follow the DRY principle through modularization.
+- Use the Composition API: `<script lang="ts" setup>`.
+- Extract reusable logic into composables.
+- Prioritize code clarity over premature optimization.
+- Ensure complete implementation (avoid TODOs or placeholders).
+- Seek clarification when requirements are unclear.
+
+### Nuxt 3 Implementation
+
+- Utilize auto-imports for Vue/Nuxt functions.
+- Implement dark mode using `@nuxtjs/color-mode`.
+- Leverage VueUse utilities for enhanced functionality.
+- Handle sensitive operations in `server/api`.
+- Use appropriate runtime configurations:
+  - Client-side: `useRuntimeConfig().public`.
+  - Server-side: `useRuntimeConfig()`.
+- Optimize SEO using `useHead` and `useSeoMeta`.
+- Configure themes in `app.config.ts`.
+- Manage state with Pinia (use `storeToRefs` for reactivity).
+
+### Error Handling
+
+- **Client-side:** `throw createError('error message')`.
+- **Server-side:** `throw createError({ statusCode, statusMessage })`.
+
+## Naming Standards
+
+- **Composables:** `use[Name]`.
+- **Components:** PascalCase (`MyComponent.vue`).
+- **Other files:** camelCase (`myPage.vue`).
+- **Functions:** Prefer named exports.
+
+## TypeScript Implementation
+
+- Maintain consistent TypeScript usage.
+- Prefer interfaces over type aliases.
+- Define comprehensive type structures.
+- Use type inference where appropriate.
+
+## UI Development
+
+### Component Structure
+
+- **Template:** Use layout-focused Tailwind classes (e.g., `flex`, `grid`, `overflow`, `position`).
+- **Style:** Use visual Tailwind classes (e.g., colors, dimensions, spacing).
+- **Ensure responsive design (mobile-first approach).**
+
+### Asset Handling
+
+- **Images:** Use `<NuxtImg>` or `<NuxtPicture>` (include `width` and `height` attributes).
+- **Icons:** Use PrimeIcons (e.g., `<i class="pi pi-wallet mr-1"></i>`).
+
+## SEO & Performance
+
+- Use a semantic HTML structure.
+- Maintain a proper heading hierarchy.
+- Use `<NuxtLink>` for internal navigation.
+- Apply lazy loading where applicable.
+
+## State Management
+
+- Use Pinia for global state management.
+- Maintain reactivity with `storeToRefs`.
+- Implement proper store typings.
+- Follow a modular store pattern.
+
+## Performance Optimization
+
+- Optimize component rendering.
+- Ensure efficient data fetching.
+- Apply lazy loading where necessary.
+- Minimize bundle size.
+- Follow Vue 3 best practices.
