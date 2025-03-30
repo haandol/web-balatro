@@ -1,13 +1,14 @@
 <template>
-  <div class="game-info">
-    <div v-if="lastPlayedHandInfo">
+  <div
+    class="mt-5 p-4 bg-white rounded-lg border border-gray-200 min-h-[50px] text-center text-gray-600 flex justify-center items-center gap-4">
+    <div v-if="lastPlayedHandInfo" class="mx-2.5">
       Played: {{ lastPlayedHandInfo.handRank }} (Score: {{ lastPlayedHandInfo.score.toLocaleString() }})
     </div>
-    <div v-else>
+    <div v-else class="mx-2.5">
       <p>Selected: {{ selectedCardsCount }} / 5</p>
     </div>
-    <p>Hands Left: {{ handsLeft }}</p>
-    <p>Discards Left: {{ discardsLeft }}</p>
+    <p class="mx-2.5">Hands Left: {{ handsLeft }}</p>
+    <p class="mx-2.5">Discards Left: {{ discardsLeft }}</p>
   </div>
 </template>
 
@@ -26,27 +27,3 @@ defineProps<{
   discardsLeft: number;
 }>();
 </script>
-
-<style scoped>
-/* 스타일은 pages/index.vue 에서 가져옵니다 */
-.game-info {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #fff;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  min-height: 50px;
-  text-align: center;
-  color: #666;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-}
-
-.game-info p,
-.game-info div {
-  margin: 0 10px;
-  /* 정보 항목 간 간격 */
-}
-</style>

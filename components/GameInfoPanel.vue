@@ -1,45 +1,86 @@
 <template>
-  <div class="game-info-panel">
-    <div class="panel-section">
-      <h3>현재 블라인드</h3>
-      <div class="blind-value">{{ currentBlind?.name }}</div>
-      <div class="blind-chips">목표 점수: {{ currentBlind?.targetScore }}</div>
-    </div>
-
-    <div class="panel-section">
-      <h3>현재 라운드 점수</h3>
-      <div class="score-value">{{ currentRoundScore }}</div>
-    </div>
-
-    <div class="panel-section">
-      <h3>현재 핸드</h3>
-      <div class="hand-type">{{ handType }}</div>
-      <div class="hand-value">
-        <span class="chips">{{ handChips }} 칩</span>
-        <span class="multiplier">x{{ handMultiplier }}</span>
+  <div class="w-[280px] flex flex-col gap-2 font-['Press_Start_2P']">
+    <!-- 블라인드 정보 -->
+    <div class="p-3 rounded-lg border-2 bg-[#8b5e00] border-[#a57211]">
+      <div class="text-2xl text-center text-white mb-3 drop-shadow-[2px_2px_0_#000]">
+        {{ currentBlind?.name || "Big Blind" }}
+      </div>
+      <div class="flex items-center gap-2.5">
+        <div class="w-20 h-20 flex justify-center items-center">
+          <div
+            class="w-[60px] h-[60px] bg-[#b37400] rounded-full flex justify-center items-center border-2 border-[#ffc107]">
+            <div class="text-[10px] text-center text-white">BIG<br>BLIND</div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1c1c1c] rounded-lg p-2.5 text-center">
+          <div class="text-[10px] text-gray-300">Score at least</div>
+          <div class="text-[28px] text-[#ff4040] my-2 drop-shadow-[2px_2px_0_#000]">
+            {{ currentBlind?.targetScore || 1200 }}
+          </div>
+          <div class="text-[10px] text-[#ffd700]">to earn $$$</div>
+        </div>
       </div>
     </div>
 
-    <div class="panel-section" v-if="lastPlayedHandInfo?.type">
-      <h3>마지막 핸드</h3>
-      <div class="hand-type">{{ lastPlayedHandInfo.type }}</div>
-      <div class="hand-value">
-        <span class="chips">{{ lastPlayedHandInfo.chips }} 칩</span>
-        <span class="multiplier">x{{ lastPlayedHandInfo.multiplier }}</span>
+    <!-- 라운드 점수 -->
+    <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex items-center justify-between">
+      <div class="text-sm text-white leading-snug">Round<br>score</div>
+      <div class="text-4xl text-white drop-shadow-[2px_2px_0_#000]">{{ currentRoundScore }}</div>
+    </div>
+
+    <!-- 현재 핸드 -->
+    <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] text-center">
+      <div class="text-2xl text-white mb-3 drop-shadow-[2px_2px_0_#000]">{{ handType }}</div>
+      <div class="flex justify-center items-center gap-2">
+        <div
+          class="bg-[#2196f3] text-white text-3xl px-4 py-2 rounded-lg min-w-[80px] text-center drop-shadow-[2px_2px_0_#000]">
+          {{ handChips }}
+        </div>
+        <div class="text-2xl text-white">x</div>
+        <div
+          class="bg-[#f44336] text-white text-3xl px-4 py-2 rounded-lg min-w-[60px] text-center drop-shadow-[2px_2px_0_#000]">
+          {{ handMultiplier }}
+        </div>
       </div>
     </div>
 
-    <div class="panel-section">
-      <h3>남은 기회</h3>
-      <div class="chances">
-        <div class="hands">핸드: {{ handsLeft }}</div>
-        <div class="discards">버리기: {{ discardsLeft }}</div>
+    <!-- 기회 및 버튼 -->
+    <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex gap-3">
+      <div class="bg-[#f44336] rounded-lg p-3 w-20 h-20 flex justify-center items-center cursor-pointer">
+        <div class="text-base text-white text-center leading-snug">Run<br>Info</div>
+      </div>
+      <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
+          <div class="text-xs text-gray-300 flex-1">Hands</div>
+          <div class="text-2xl text-[#2196f3] drop-shadow-[1px_1px_0_#000]">{{ handsLeft }}</div>
+        </div>
+        <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
+          <div class="text-xs text-gray-300 flex-1">Discards</div>
+          <div class="text-2xl text-[#2196f3] drop-shadow-[1px_1px_0_#000]">{{ discardsLeft }}</div>
+        </div>
       </div>
     </div>
 
-    <div class="panel-section">
-      <h3>골드</h3>
-      <div class="money-value">{{ money }}</div>
+    <!-- 골드 -->
+    <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex justify-center items-center min-h-[60px]">
+      <div class="text-2xl text-[#ffd700] drop-shadow-[2px_2px_0_#000]">${{ money }}</div>
+    </div>
+
+    <!-- 앤티 및 라운드 -->
+    <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex gap-3">
+      <div class="bg-[#ff9800] rounded-lg p-3 w-20 h-20 flex justify-center items-center cursor-pointer">
+        <div class="text-base text-white text-center">Options</div>
+      </div>
+      <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
+          <div class="text-xs text-gray-300 flex-1">Ante</div>
+          <div class="text-2xl text-[#ff9800] drop-shadow-[1px_1px_0_#000]">2/8</div>
+        </div>
+        <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
+          <div class="text-xs text-gray-300 flex-1">Round</div>
+          <div class="text-2xl text-[#ff9800] drop-shadow-[1px_1px_0_#000]">4</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -65,62 +106,3 @@ defineProps<{
   money: number;
 }>();
 </script>
-
-<style scoped>
-.game-info-panel {
-  width: 250px;
-  background-color: #1a1a1a75;
-  border-radius: 8px;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.panel-section {
-  border-bottom: 1px solid #ffffff33;
-  padding-bottom: 15px;
-}
-
-.panel-section:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-h3 {
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: #c8c8c8;
-}
-
-.blind-value,
-.hand-type,
-.money-value {
-  font-size: 16px;
-  color: #ffd700;
-  margin-bottom: 5px;
-}
-
-.blind-chips,
-.score-value,
-.hand-value,
-.chances {
-  font-size: 14px;
-}
-
-.chips {
-  color: #6bf26b;
-  margin-right: 8px;
-}
-
-.multiplier {
-  color: #f26b6b;
-}
-
-.hands,
-.discards {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-</style>

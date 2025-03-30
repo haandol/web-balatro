@@ -1,27 +1,13 @@
-// composables/useBalatroGame.ts
 import { evaluateHand, calculateScore, type Card } from '@/utils/poker';
-import { JOKER_DATABASE, type Joker } from '@/utils/joker';
+import { JokerRarity } from '@/utils/joker';
+import { useGameStore } from '@/stores/game';
 
 export function useBalatroGame() {
     const gameStore = useGameStore();
 
     // 스토어 상태 가져오기
     const {
-        deck,
-        playerHand,
-        selectedCards,
-        handSize,
-        currentAnteIndex,
-        currentBlindIndex,
-        currentRoundScore,
-        handsLeft,
-        discardsLeft,
-        lastPlayedHandInfo,
-        isGameOver,
         currentBlind,
-        activeJokers,
-        money,
-        antes,
     } = storeToRefs(gameStore);
 
     // 덱 초기화
@@ -92,7 +78,7 @@ export function useBalatroGame() {
     };
 
     // 다음 블라인드 또는 안테로 진행
-     const advanceToNextBlind = () => {
+    const advanceToNextBlind = () => {
         console.log(`${currentBlind.value?.name} Cleared!`);
         // TODO: 보상 처리 (money 상태 업데이트 등)
         // 예: gameStore.money += currentBlind.value?.reward || 0;
@@ -109,11 +95,11 @@ export function useBalatroGame() {
                 gameStore.isGameOver = true;
                 return;
             } else {
-                 console.log(`Advancing to Ante ${gameStore.currentAnteIndex + 1}`);
-                 initializeDeck();
-                 shuffleDeck();
-                 // 새 안테에서는 플레이어 핸드를 비우고 다시 시작
-                 gameStore.playerHand = [];
+                console.log(`Advancing to Ante ${gameStore.currentAnteIndex + 1}`);
+                initializeDeck();
+                shuffleDeck();
+                // 새 안테에서는 플레이어 핸드를 비우고 다시 시작
+                gameStore.playerHand = [];
             }
         }
         startNextBlind();
@@ -126,7 +112,7 @@ export function useBalatroGame() {
     };
 
      // 게임 초기화 함수
-     const initializeGame = () => {
+    const initializeGame = () => {
         gameStore.isGameOver = false;
         gameStore.currentAnteIndex = 0;
         gameStore.currentBlindIndex = 0;
@@ -139,6 +125,36 @@ export function useBalatroGame() {
         console.log('Game initialized. Active jokers:', gameStore.activeJokers.length);
     };
 
+    // 테스트용 조커 초기화 함수
+    const initTestJokers = () => {
+        const store = useGameStore();
+
+        // 테스트용 조커 3개 추가
+        store.activeJokers = [
+            {
+                id: 'j_plus_4_mult',
+                name: '승수 조커',
+                description: '+4 Mult',
+                rarity: JokerRarity.COMMON,
+                calculateAddedMultiplier: () => 4
+            },
+            {
+                id: 'j_chips',
+                name: '칩 조커',
+                description: '+50 Chips',
+                rarity: JokerRarity.COMMON,
+                calculateChips: () => 50
+            },
+            {
+                id: 'j_multiplier',
+                name: '곱셈 조커',
+                description: 'x1.5 Mult',
+                rarity: JokerRarity.RARE,
+                calculateMultipliedMultiplier: () => 1.5
+            }
+        ];
+    };
+
     // 게임 시작 또는 재시작
     const startGame = () => {
         // gameStore.initializeGame(); // 액션 호출 대신 직접 함수 호출
@@ -147,6 +163,9 @@ export function useBalatroGame() {
         initializeDeck();
         shuffleDeck();
         startNextBlind();
+
+        // 테스트용 조커 추가
+        initTestJokers();
     };
 
     // 게임 재시작
@@ -206,16 +225,16 @@ export function useBalatroGame() {
         if (currentBlind.value && gameStore.currentRoundScore >= currentBlind.value.targetScore) { // currentBlind null 체크 추가
             advanceToNextBlind();
         } else if (gameStore.handsLeft === 0) {
-             if(gameStore.discardsLeft === 0) {
-                 handleGameOver();
-             } else {
-                 console.log("Hands depleted, but discards remain.");
+            if(gameStore.discardsLeft === 0) {
+                handleGameOver();
+            } else {
+                console.log("Hands depleted, but discards remain.");
                  // 손이 0이 되고 점수가 목표에 도달하지 못했는지 확인
-                 if (currentBlind.value && gameStore.currentRoundScore < currentBlind.value.targetScore) {
-                     console.log(`Failed to reach target score. Current: ${gameStore.currentRoundScore}, Target: ${currentBlind.value.targetScore}`);
-                     handleGameOver();
-                 }
-             }
+                if (currentBlind.value && gameStore.currentRoundScore < currentBlind.value.targetScore) {
+                    console.log(`Failed to reach target score. Current: ${gameStore.currentRoundScore}, Target: ${currentBlind.value.targetScore}`);
+                    handleGameOver();
+                }
+            }
         }
     };
 

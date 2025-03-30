@@ -1,8 +1,10 @@
 <template>
-  <div id="app" class="game-container" :class="{ 'game-over': isGameOver }">
+  <div id="app"
+    class="font-['Press_Start_2P'] p-5 bg-[#2d5a3a] max-w-[1200px] mx-auto rounded-none shadow-lg relative text-white min-h-[95vh] flex flex-col transition-colors duration-300"
+    :class="{ 'bg-[#3a2d2d]': isGameOver }">
     <GameOverMessage :visible="isGameOver" @restart="restartGame" />
 
-    <div class="balatro-ui">
+    <div class="flex gap-5">
       <!-- 좌측 정보 패널 -->
       <GameInfoPanel :current-blind="currentBlind" :current-round-score="currentRoundScore" :hand-type="currentHandType"
         :hand-chips="currentHandChips" :hand-multiplier="currentHandMultiplier"
@@ -10,17 +12,17 @@
         :money="money" />
 
       <!-- 중앙 게임 영역 -->
-      <div class="center-area">
+      <div class="flex-1 flex flex-col gap-5">
         <!-- 조커 슬롯 -->
         <JokerSlot :active-jokers="activeJokers" :max-slots="maxJokerSlots" @select-joker="onJokerSelect" />
 
         <!-- 카드 영역 -->
-        <div class="card-play-area">
+        <div class="flex-1 flex flex-col gap-5 bg-[#1a1a1a75] rounded-lg p-5">
           <!-- 선택된 카드들 -->
           <SelectedCardsArea :selected-cards="selectedCards" :empty-slots="emptySelectedSlots" />
 
           <!-- 플레이어 핸드 -->
-          <div class="player-hand">
+          <div class="flex flex-wrap justify-center gap-4">
             <GameCard v-for="card in playerHand" :key="card.id" :card="card" :is-selected="isSelected(card)"
               :is-disabled="isGameOver" @select="toggleCardSelection(card)" />
           </div>
@@ -31,33 +33,22 @@
           :discards-left="discardsLeft" @play-hand="playHand" @discard-cards="discardCards" />
       </div>
     </div>
+
+    <!-- 우측 하단 카드 덱 -->
+    <CardDeck :hands-left="handsLeft" :discards-left="discardsLeft" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useGameStore } from '@/stores/game';
 import { useBalatroGame } from '@/composables/useBalatroGame';
 import { evaluateHand, calculateScore } from '@/utils/poker';
 import type { Joker } from '@/utils/joker';
-
-// 이미 존재하는 컴포넌트들
-import GameCard from '@/components/GameCard.vue';
-import GameOverMessage from '@/components/GameOverMessage.vue';
-import JokerSlot from '@/components/JokerSlot.vue';
-
-// 새로 만든 컴포넌트들
-import GameInfoPanel from '@/components/GameInfoPanel.vue';
-import SelectedCardsArea from '@/components/SelectedCardsArea.vue';
-import GameControls from '@/components/GameControls.vue';
 
 const gameStore = useGameStore();
 
 const {
   playerHand,
   selectedCards,
-  currentAnteIndex,
   currentRoundScore,
   handsLeft,
   discardsLeft,
@@ -136,55 +127,3 @@ onMounted(() => {
   resetHandTypeInfo();
 });
 </script>
-
-<style scoped>
-/* 전체 게임 컨테이너 */
-.game-container {
-  font-family: 'Press Start 2P', monospace, sans-serif;
-  padding: 20px;
-  background-color: #2d5a3a;
-  max-width: 1200px;
-  margin: 0 auto;
-  border-radius: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  position: relative;
-  color: white;
-  min-height: 95vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.game-over {
-  background-color: #3a2d2d;
-}
-
-.balatro-ui {
-  display: flex;
-  gap: 20px;
-}
-
-/* 중앙 게임 영역 */
-.center-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.card-play-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background-color: #1a1a1a75;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.player-hand {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-}
-</style>

@@ -1,21 +1,25 @@
 <template>
-  <div class="game-controls">
-    <div class="counter-display">
-      <div class="counter">
-        <span class="counter-label">남은 핸드:</span>
-        <span class="counter-value">{{ handsLeft }}</span>
+  <div class="flex flex-col gap-4 bg-[#1a1a1a75] rounded-lg p-4">
+    <div class="flex justify-around">
+      <div class="flex flex-col items-center">
+        <span class="text-sm text-[#c8c8c8]">남은 핸드:</span>
+        <span class="text-lg text-[#ffd700]">{{ handsLeft }}</span>
       </div>
-      <div class="counter">
-        <span class="counter-label">남은 버리기:</span>
-        <span class="counter-value">{{ discardsLeft }}</span>
+      <div class="flex flex-col items-center">
+        <span class="text-sm text-[#c8c8c8]">남은 버리기:</span>
+        <span class="text-lg text-[#ffd700]">{{ discardsLeft }}</span>
       </div>
     </div>
 
-    <div class="action-buttons">
-      <button class="control-button play-button" :disabled="!canPlay" @click="$emit('play-hand')">
+    <div class="flex justify-around gap-4">
+      <button
+        class="px-5 py-2.5 rounded bg-green-500 text-white font-['Press_Start_2P'] text-sm transition-all duration-200 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="!canPlay" @click="$emit('play-hand')">
         플레이 ({{ handsLeft }})
       </button>
-      <button class="control-button discard-button" :disabled="!canDiscard" @click="$emit('discard-cards')">
+      <button
+        class="px-5 py-2.5 rounded bg-red-500 text-white font-['Press_Start_2P'] text-sm transition-all duration-200 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="!canDiscard" @click="$emit('discard-cards')">
         버리기 ({{ discardsLeft }})
       </button>
     </div>
@@ -35,74 +39,3 @@ defineEmits<{
   'discard-cards': [];
 }>();
 </script>
-
-<style scoped>
-.game-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  background-color: #1a1a1a75;
-  border-radius: 8px;
-  padding: 15px;
-}
-
-.counter-display {
-  display: flex;
-  justify-content: space-around;
-}
-
-.counter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.counter-label {
-  font-size: 14px;
-  color: #c8c8c8;
-}
-
-.counter-value {
-  font-size: 18px;
-  color: #ffd700;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: space-around;
-  gap: 15px;
-}
-
-.control-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.control-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.play-button {
-  background-color: #4caf50;
-  color: white;
-}
-
-.play-button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-.discard-button {
-  background-color: #f44336;
-  color: white;
-}
-
-.discard-button:hover:not(:disabled) {
-  background-color: #d32f2f;
-}
-</style>
