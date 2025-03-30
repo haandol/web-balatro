@@ -46,9 +46,6 @@
 
     <!-- 기회 및 버튼 -->
     <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex gap-3">
-      <div class="bg-[#f44336] rounded-lg p-3 w-20 h-20 flex justify-center items-center cursor-pointer">
-        <div class="text-base text-white text-center leading-snug">Run<br>Info</div>
-      </div>
       <div class="flex-1 flex flex-col gap-2">
         <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
           <div class="text-xs text-gray-300 flex-1">Hands</div>
@@ -68,9 +65,6 @@
 
     <!-- 앤티 및 라운드 -->
     <div class="p-3 rounded-lg border-2 bg-[#1c2e3e] border-[#2e3b48] flex gap-3">
-      <div class="bg-[#ff9800] rounded-lg p-3 w-20 h-20 flex justify-center items-center cursor-pointer">
-        <div class="text-base text-white text-center">Options</div>
-      </div>
       <div class="flex-1 flex flex-col gap-2">
         <div class="flex-1 bg-[#263238] rounded-lg flex items-center px-2.5">
           <div class="text-xs text-gray-300 flex-1">Ante</div>

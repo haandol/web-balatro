@@ -1,6 +1,5 @@
 import { evaluateHand, calculateScore, type Card } from '@/utils/poker';
 import { JokerRarity, JOKER_DATABASE } from '@/utils/joker';
-import { useGameStore } from '@/stores/game';
 
 export function useBalatroGame() {
     const gameStore = useGameStore();
@@ -15,7 +14,6 @@ export function useBalatroGame() {
         gameStore.deck = [];
         gameStore.cardIdCounter = 0;
         const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
-        // @ts-ignore ranks가 스토어 상태에 없을 수 있음 (store.ranks 사용 필요 시)
         const ranks = gameStore.ranks || ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']; // 스토어 값 또는 기본값 사용
         const newDeck: Card[] = [];
         let tempIdCounter = 0;
@@ -60,7 +58,7 @@ export function useBalatroGame() {
     };
 
      // 다음 블라인드 시작 준비
-     const startNextBlind = () => {
+    const startNextBlind = () => {
         if (!currentBlind.value) {
             console.log("All antes cleared or error!");
             gameStore.isGameOver = true;
@@ -177,9 +175,9 @@ export function useBalatroGame() {
         initializeDeck();
         shuffleDeck();
 
-        // 첫 블라인드에서도 조커 상점 표시를 위한 랜덤 조커 생성
-        generateRandomJokers();
-        gameStore.showJokerShop = true;
+        // 첫 게임 시작에는 조커 상점 표시하지 않음
+        // generateRandomJokers();
+        gameStore.showJokerShop = false;
 
         startNextBlind();
 
