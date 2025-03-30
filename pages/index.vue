@@ -2,6 +2,9 @@
   <div id="app"
     class="font-['Press_Start_2P'] p-5 bg-[#2d5a3a] max-w-[1200px] mx-auto rounded-none shadow-lg relative text-white min-h-[95vh] flex flex-col transition-colors duration-300"
     :class="{ 'bg-[#3a2d2d]': isGameOver }">
+    <!-- 조커 상점 컴포넌트 추가 -->
+    <JokerShop />
+
     <GameOverMessage :visible="isGameOver" @restart="restartGame" />
 
     <div class="flex gap-5">

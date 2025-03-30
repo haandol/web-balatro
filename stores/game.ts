@@ -2,6 +2,7 @@ import type { Card, HandRank } from '@/utils/poker'; // HandRank 추가
 import { initialAntes, initialSuits, initialRanks } from '@/data/gameData'; // 데이터 임포트
 import type { Blind, GameState } from '@/types/game'; // 타입 임포트
 import type { Joker } from '@/utils/joker'; // Joker 타입 임포트
+import { JokerRarity, JOKER_DATABASE } from '@/utils/joker'; // JokerRarity와 JOKER_DATABASE 임포트 추가
 
 // defineStore의 setup 함수 사용
 export const useGameStore = defineStore('game', () => {
@@ -25,6 +26,26 @@ export const useGameStore = defineStore('game', () => {
   const money = ref(4);
   const maxJokerSlots = ref(5);
   const cardsLeft = ref(52); // 남은 카드 수 추가
+
+  // 블라인드 변경 시 조커 구매 시스템 관련 상태 추가
+  const availableJokers = ref<Joker[]>([]); // 구매 가능한 조커 목록
+  const showJokerShop = ref(false); // 조커 상점 표시 여부
+
+  // 조커 희귀도에 따른 가격 계산
+  const getJokerPrice = (joker: Joker): number => {
+    switch(joker.rarity) {
+      case JokerRarity.COMMON:
+        return 3 + Math.floor(currentAnteIndex.value / 2);
+      case JokerRarity.UNCOMMON:
+        return 5 + Math.floor(currentAnteIndex.value / 2);
+      case JokerRarity.RARE:
+        return 8 + currentAnteIndex.value;
+      case JokerRarity.LEGENDARY:
+        return 12 + currentAnteIndex.value * 2;
+      default:
+        return 5;
+    }
+  };
 
   // Getters (computed 사용)
   const currentBlind = computed((): Blind | null => {
@@ -137,7 +158,7 @@ export const useGameStore = defineStore('game', () => {
     // 선택된 카드 제거
     const selectedIds = new Set(selectedCards.value.map(c => c.id));
     playerHand.value = playerHand.value.filter(card => !selectedIds.has(card.id));
-    
+
     // 새 카드 뽑기
     for (let i = 0; i < selectedCards.value.length; i++) {
       const card = drawCard();
@@ -155,14 +176,14 @@ export const useGameStore = defineStore('game', () => {
 
   function playSelectedCards() {
     if (!canPlay.value) return;
-    
+
     // 여기서 실제 핸드 평가 및 점수 계산을 수행해야 함
     // 현재는 예시로만 구현
-    
+
     // 선택한 카드 처리
     const selectedIds = new Set(selectedCards.value.map(c => c.id));
     playerHand.value = playerHand.value.filter(card => !selectedIds.has(card.id));
-    
+
     // 새 카드 뽑기
     for (let i = 0; i < selectedCards.value.length; i++) {
       const card = drawCard();
@@ -174,13 +195,13 @@ export const useGameStore = defineStore('game', () => {
         break;
       }
     }
-    
+
     // 핸드 사용 횟수 감소
     useHand();
-    
+
     // 선택된 카드 초기화
     selectedCards.value = [];
-    
+
     // 게임 상태 체크
     if (handsLeft.value === 0) {
       // 라운드 종료 처리
@@ -191,7 +212,7 @@ export const useGameStore = defineStore('game', () => {
   // 카드 선택 토글
   function toggleCardSelection(card: Card) {
     if (isGameOver.value) return;
-    
+
     const selectedIndex = selectedCards.value.findIndex(c => c.id === card.id);
     if (selectedIndex === -1) {
       selectedCards.value.push(card);
@@ -235,6 +256,9 @@ export const useGameStore = defineStore('game', () => {
     startGame,
     discardSelectedCards,
     playSelectedCards,
-    toggleCardSelection
+    toggleCardSelection,
+    availableJokers,
+    showJokerShop,
+    getJokerPrice
   };
 });

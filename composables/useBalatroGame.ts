@@ -1,5 +1,5 @@
 import { evaluateHand, calculateScore, type Card } from '@/utils/poker';
-import { JokerRarity } from '@/utils/joker';
+import { JokerRarity, JOKER_DATABASE } from '@/utils/joker';
 import { useGameStore } from '@/stores/game';
 
 export function useBalatroGame() {
@@ -108,6 +108,11 @@ export function useBalatroGame() {
         // 새 블라인드에서는 플레이어 핸드를 비우고 다시 시작
         gameStore.playerHand = [];
 
+        // 블라인드가 변경될 때마다 랜덤 조커 생성
+        generateRandomJokers();
+        // 조커 상점 표시
+        gameStore.showJokerShop = true;
+
         startNextBlind();
     };
 
@@ -168,10 +173,15 @@ export function useBalatroGame() {
 
         initializeDeck();
         shuffleDeck();
+
+        // 첫 블라인드에서도 조커 상점 표시를 위한 랜덤 조커 생성
+        generateRandomJokers();
+        gameStore.showJokerShop = true;
+
         startNextBlind();
 
         // 테스트용 조커 추가
-        initTestJokers();
+        // initTestJokers(); // 조커 상점을 통해 구매하도록 제거하거나 주석 처리
     };
 
     // 게임 재시작
@@ -264,6 +274,73 @@ export function useBalatroGame() {
         }
     };
 
+    // 랜덤 조커 생성 함수
+    const generateRandomJokers = () => {
+        // JOKER_DATABASE에서 사용 가능한 모든 조커 ID 가져오기
+        const allJokerIds = Object.keys(JOKER_DATABASE);
+        const currentJokerIds = new Set(gameStore.activeJokers.map(joker => joker.id));
+
+        // 이미 활성화된 조커 제외
+        const availableJokerIds = allJokerIds.filter(id => !currentJokerIds.has(id));
+
+        if (availableJokerIds.length === 0) {
+            console.log("No more jokers available!");
+            gameStore.availableJokers = [];
+            return;
+        }
+
+        // 블라인드 단계에 따라 조커 수 결정 (최소 2개, 최대 4개)
+        const numberOfJokers = Math.min(Math.max(2, 1 + Math.floor(gameStore.currentAnteIndex / 2)), 4);
+
+        // 랜덤으로 조커 선택
+        const selectedJokers = [];
+        for (let i = 0; i < numberOfJokers && i < availableJokerIds.length; i++) {
+            // 랜덤 인덱스 생성
+            const randomIndex = Math.floor(Math.random() * availableJokerIds.length);
+            const jokerId = availableJokerIds[randomIndex];
+
+            // 선택된 조커 추가하고 목록에서 제거
+            selectedJokers.push(JOKER_DATABASE[jokerId]);
+            availableJokerIds.splice(randomIndex, 1);
+        }
+
+        // 선택된 조커를 사용 가능한 조커로 설정
+        gameStore.availableJokers = selectedJokers;
+    };
+
+    // 조커 구매 함수
+    const buyJoker = (joker: Joker) => {
+        const jokerPrice = gameStore.getJokerPrice(joker);
+
+        // 플레이어가 충분한 돈을 가지고 있는지 확인
+        if (gameStore.money < jokerPrice) {
+            console.log(`Not enough money to buy ${joker.name}. Need ${jokerPrice} coins.`);
+            return false;
+        }
+
+        // 조커 슬롯이 가득 찼는지 확인
+        if (gameStore.activeJokers.length >= gameStore.maxJokerSlots) {
+            console.log(`Cannot buy ${joker.name}. Joker slots are full.`);
+            return false;
+        }
+
+        // 돈 지불하고 조커 추가
+        gameStore.money -= jokerPrice;
+        gameStore.activeJokers.push(joker);
+
+        // 구매한 조커를 사용 가능한 조커 목록에서 제거
+        gameStore.availableJokers = gameStore.availableJokers.filter(j => j.id !== joker.id);
+
+        console.log(`Purchased ${joker.name} for ${jokerPrice} coins!`);
+        return true;
+    };
+
+    // 조커 상점 닫기
+    const closeJokerShop = () => {
+        gameStore.showJokerShop = false;
+        gameStore.availableJokers = [];
+    };
+
     // 반환할 함수들
     return {
         startGame,
@@ -271,5 +348,7 @@ export function useBalatroGame() {
         toggleCardSelection,
         playHand,
         discardCards,
+        buyJoker,
+        closeJokerShop,
     };
 }
