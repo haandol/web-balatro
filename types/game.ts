@@ -5,6 +5,7 @@ import type { Joker } from '@/utils/joker'; // Joker 타입 임포트
 export interface Blind {
     name: string;
     targetScore: number;
+    reward: number; // 블라인드 격파 시 받는 돈
 }
 
 export interface Ante {

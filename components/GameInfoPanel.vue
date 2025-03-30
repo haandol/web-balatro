@@ -17,7 +17,7 @@
           <div class="text-[28px] text-[#ff4040] my-2 drop-shadow-[2px_2px_0_#000]">
             {{ currentBlind?.targetScore || 1200 }}
           </div>
-          <div class="text-[10px] text-[#ffd700]">to earn $$$</div>
+          <div class="text-[10px] text-[#ffd700]">to earn ${{ currentBlind?.reward || 0 }}</div>
         </div>
       </div>
     </div>

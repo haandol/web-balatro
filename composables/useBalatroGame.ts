@@ -81,8 +81,11 @@ export function useBalatroGame() {
     // 다음 블라인드 또는 안테로 진행
     const advanceToNextBlind = () => {
         console.log(`${currentBlind.value?.name} Cleared!`);
-        // TODO: 보상 처리 (money 상태 업데이트 등)
-        // 예: gameStore.money += currentBlind.value?.reward || 0;
+        // 보상 처리 - 블라인드 격파 시 보상 지급
+        if (currentBlind.value?.reward) {
+            gameStore.money += currentBlind.value.reward;
+            console.log(`Reward: $${currentBlind.value.reward} earned!`);
+        }
 
         // 블라인드를 클리어했으므로 라운드 관련 상태 초기화
         resetRoundState();
