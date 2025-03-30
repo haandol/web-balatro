@@ -1,240 +1,250 @@
 // composables/useBalatroGame.ts
-import { storeToRefs } from 'pinia';
-import { useGameStore } from '@/stores/game';
 import { evaluateHand, calculateScore, type Card } from '@/utils/poker';
+import { JOKER_DATABASE, type Joker } from '@/utils/joker';
 
 export function useBalatroGame() {
-  const gameStore = useGameStore();
-  const {
-    // State (writable refs needed for direct manipulation in composable)
-    deck,
-    playerHand,
-    selectedCards,
-    cardIdCounter,
-    currentAnteIndex,
-    currentBlindIndex,
-    currentRoundScore,
-    handsLeft,
-    discardsLeft,
-    lastPlayedHandInfo,
-    isGameOver,
-    // Config (read-only refs are fine)
-    handSize,
-    antes,
-    suits,
-    ranks,
-    // Getters
-    currentBlind,
-    canPlay,
-    canDiscard,
-  } = storeToRefs(gameStore);
+    const gameStore = useGameStore();
 
-  // --- Private Helper Functions (moved from store actions) ---
-  const initializeDeck = () => {
-    deck.value = []; // Direct state manipulation (consider if actions are preferred)
-    cardIdCounter.value = 0;
-    for (const suit of suits.value) {
-      for (const rank of ranks.value) {
-        deck.value.push({ id: cardIdCounter.value++, suit, rank });
-      }
-    }
-  };
+    // 스토어 상태 가져오기
+    const {
+        deck,
+        playerHand,
+        selectedCards,
+        handSize,
+        currentAnteIndex,
+        currentBlindIndex,
+        currentRoundScore,
+        handsLeft,
+        discardsLeft,
+        lastPlayedHandInfo,
+        isGameOver,
+        currentBlind,
+        activeJokers,
+        money,
+        antes,
+    } = storeToRefs(gameStore);
 
-  const shuffleDeck = () => {
-    for (let i = deck.value.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [deck.value[i], deck.value[j]] = [deck.value[j], deck.value[i]];
-    }
-  };
-
-  const drawCards = (count: number) => {
-    if (isGameOver.value) return;
-
-    const cardsToDraw = Math.min(count, deck.value.length, handSize.value - playerHand.value.length);
-    if (cardsToDraw > 0) {
-      const newCards = deck.value.splice(0, cardsToDraw);
-      playerHand.value.push(...newCards);
-      console.log(`Drew ${cardsToDraw} cards.`);
-    } else if (deck.value.length === 0) {
-      console.log("Deck is empty!");
-      // TODO: Handle empty deck scenario
-    } else {
-      console.log("Hand is full.");
-    }
-  };
-
-  const startNextBlind = () => {
-    const blind = currentBlind.value; // Use getter ref
-    if (!blind) {
-        console.log("All antes cleared or error!");
-        isGameOver.value = true; // Directly modify state
-        return;
-    }
-    // Reset round state
-    currentRoundScore.value = 0;
-    handsLeft.value = 4; // TODO: Make configurable
-    discardsLeft.value = 3; // TODO: Make configurable
-    selectedCards.value = [];
-    lastPlayedHandInfo.value = null;
-
-    // Fill hand
-    drawCards(handSize.value - playerHand.value.length);
-
-    console.log(`Starting Ante ${currentAnteIndex.value + 1}, ${blind.name}. Target: ${blind.targetScore}`);
-  };
-
-    const advanceToNextBlind = () => {
-        const blind = currentBlind.value;
-        if (!blind) return;
-
-        console.log(`${blind.name} Cleared!`);
-        // TODO: Reward logic (e.g., enter shop)
-
-        currentBlindIndex.value++;
-
-        if (currentBlindIndex.value >= antes.value[currentAnteIndex.value].blinds.length) {
-            currentAnteIndex.value++;
-            currentBlindIndex.value = 0;
-
-            if (currentAnteIndex.value >= antes.value.length) {
-                console.log("Congratulations! You cleared all Antes!");
-                isGameOver.value = true;
-                return;
-            } else {
-                console.log(`Advancing to Ante ${currentAnteIndex.value + 1}`);
-                // Reset deck/hand for next ante (confirm rules)
-                initializeDeck();
-                shuffleDeck();
-                playerHand.value = []; // Empty hand
+    // 덱 초기화
+    const initializeDeck = () => {
+        gameStore.deck = [];
+        gameStore.cardIdCounter = 0;
+        const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
+        // @ts-ignore ranks가 스토어 상태에 없을 수 있음 (store.ranks 사용 필요 시)
+        const ranks = gameStore.ranks || ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']; // 스토어 값 또는 기본값 사용
+        const newDeck: Card[] = [];
+        let tempIdCounter = 0;
+        for (const suit of suits) {
+            for (const rank of ranks) {
+                newDeck.push({ id: tempIdCounter++, suit, rank });
             }
         }
-        // Prepare for the next blind (includes drawing cards after deck reset)
+        gameStore.deck = newDeck;
+        gameStore.cardIdCounter = tempIdCounter;
+    };
+
+    // 덱 셔플
+    const shuffleDeck = () => {
+        const array = gameStore.deck;
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    };
+
+    // 카드 뽑기
+    const drawCards = (count: number) => {
+        if (gameStore.isGameOver) return;
+        const cardsToDraw = Math.min(count, gameStore.deck.length, gameStore.handSize - gameStore.playerHand.length);
+        if (cardsToDraw > 0) {
+            const newCards = gameStore.deck.splice(0, cardsToDraw);
+            gameStore.playerHand.push(...newCards);
+        }
+    };
+
+    // 라운드 상태 초기화 함수 (액션 대신 직접 구현)
+    const resetRoundState = () => {
+        gameStore.currentRoundScore = 0;
+        gameStore.handsLeft = 4; // 기본값 사용 또는 스토어 기본값 참조
+        gameStore.discardsLeft = 3; // 기본값 사용
+        gameStore.selectedCards = [];
+        gameStore.lastPlayedHandInfo = null;
+        // 이전 라운드 관련 상태 초기화
+        // (previousPlayedJokers는 제거 - 필요없는 상태)
+    };
+
+     // 다음 블라인드 시작 준비
+     const startNextBlind = () => {
+        if (!currentBlind.value) {
+            console.log("All antes cleared or error!");
+            gameStore.isGameOver = true;
+            return;
+        }
+        resetRoundState();
+        // 플레이어 핸드가 비어 있으면 카드를 채움
+        if (gameStore.playerHand.length === 0) {
+            gameStore.playerHand = [];
+        }
+        // 새 라운드를 시작할 때 항상 handSize만큼 카드를 채움
+        drawCards(gameStore.handSize - gameStore.playerHand.length);
+        if (currentBlind.value) {
+            console.log(`Starting Ante ${gameStore.currentAnteIndex + 1}, ${currentBlind.value.name}. Target: ${currentBlind.value.targetScore}`);
+        }
+    };
+
+    // 다음 블라인드 또는 안테로 진행
+     const advanceToNextBlind = () => {
+        console.log(`${currentBlind.value?.name} Cleared!`);
+        // TODO: 보상 처리 (money 상태 업데이트 등)
+        // 예: gameStore.money += currentBlind.value?.reward || 0;
+
+        // 블라인드를 클리어했으므로 라운드 관련 상태 초기화
+        resetRoundState();
+
+        gameStore.currentBlindIndex++;
+        if (gameStore.currentBlindIndex >= gameStore.antes[gameStore.currentAnteIndex].blinds.length) {
+            gameStore.currentAnteIndex++;
+            gameStore.currentBlindIndex = 0;
+            if (gameStore.currentAnteIndex >= gameStore.antes.length) {
+                console.log("Congratulations! You cleared all Antes!");
+                gameStore.isGameOver = true;
+                return;
+            } else {
+                 console.log(`Advancing to Ante ${gameStore.currentAnteIndex + 1}`);
+                 initializeDeck();
+                 shuffleDeck();
+                 // 새 안테에서는 플레이어 핸드를 비우고 다시 시작
+                 gameStore.playerHand = [];
+            }
+        }
         startNextBlind();
     };
 
+    // 게임 오버 처리
     const handleGameOver = () => {
-        console.log("Game Over! Target score not met.");
-        isGameOver.value = true;
-        // Additional game over logic (e.g., show scoreboard)
+        console.log("Game Over!");
+        gameStore.isGameOver = true;
     };
 
-  // --- Exposed Functions (Public API of the composable) ---
-  const startGame = () => {
-    // Reset core game state
-    isGameOver.value = false;
-    currentAnteIndex.value = 0;
-    currentBlindIndex.value = 0;
-    currentRoundScore.value = 0;
-    handsLeft.value = 4;
-    discardsLeft.value = 3;
-    lastPlayedHandInfo.value = null;
-    deck.value = [];
-    playerHand.value = [];
-    selectedCards.value = [];
-    cardIdCounter.value = 0;
+     // 게임 초기화 함수
+     const initializeGame = () => {
+        gameStore.isGameOver = false;
+        gameStore.currentAnteIndex = 0;
+        gameStore.currentBlindIndex = 0;
+        gameStore.money = 4; // 초기 자금 설정
+        gameStore.activeJokers = []; // 조커 초기화
+        gameStore.playerHand = []; // 플레이어 핸드 초기화
+        resetRoundState(); // 라운드 상태 초기화 포함
 
-    initializeDeck();
-    shuffleDeck();
-    startNextBlind(); // Start the first blind
-  };
+        // 디버깅: 조커 상태 확인
+        console.log('Game initialized. Active jokers:', gameStore.activeJokers.length);
+    };
 
+    // 게임 시작 또는 재시작
+    const startGame = () => {
+        // gameStore.initializeGame(); // 액션 호출 대신 직접 함수 호출
+        initializeGame();
+
+        initializeDeck();
+        shuffleDeck();
+        startNextBlind();
+    };
+
+    // 게임 재시작
+    const restartGame = () => {
+        startGame();
+    };
+
+    // 카드 선택 토글
     const toggleCardSelection = (card: Card) => {
-        if (isGameOver.value) return;
-
-        const index = selectedCards.value.findIndex(selected => selected.id === card.id);
+        if (gameStore.isGameOver) return;
+        const index = gameStore.selectedCards.findIndex(selected => selected.id === card.id);
         if (index > -1) {
-            selectedCards.value.splice(index, 1);
+            gameStore.selectedCards.splice(index, 1);
         } else {
-            if (selectedCards.value.length < 5) {
-                selectedCards.value.push(card);
+            if (gameStore.selectedCards.length < 5) {
+                gameStore.selectedCards.push(card);
             } else {
-                // TODO: Provide user feedback (e.g., use Nuxt UI Toast)
-                console.warn("You can select a maximum of 5 cards.");
+                alert("You can select a maximum of 5 cards.");
             }
         }
     };
 
+    // 핸드 플레이
     const playHand = () => {
-        const blind = currentBlind.value; // Get current blind from ref
-        if (!canPlay.value || !blind) return; // Use getter ref
+        if (!gameStore.canPlay || !currentBlind.value) return;
 
-        console.log("Playing hand:", selectedCards.value.map(c => `${c.rank}${c.suit}`));
+        console.log("Attempting to play hand...");
+        gameStore.lastPlayedHandInfo = null;
 
-        const evaluation = evaluateHand(selectedCards.value);
+        const evaluation = evaluateHand(gameStore.selectedCards);
         if (!evaluation) {
             console.error("Could not evaluate hand.");
             return;
         }
 
-        // TODO: Incorporate Jokers, modifiers, etc., into score calculation
-        const scoreResult = calculateScore(evaluation, selectedCards.value);
+        // 활성화된 조커가 있는지 확인하고 로그 출력
+        const jokersToApply = gameStore.activeJokers && gameStore.activeJokers.length > 0 ? gameStore.activeJokers : [];
+        console.log(`Using ${jokersToApply.length} active jokers for score calculation`);
+        // 디버깅을 위해 조커 목록 출력
+        if (jokersToApply.length > 0) {
+            console.log('Active jokers:', jokersToApply.map(joker => joker.name).join(', '));
+        }
 
-        // Update state directly
-        currentRoundScore.value += scoreResult.totalScore;
-        handsLeft.value--;
-        lastPlayedHandInfo.value = { handRank: scoreResult.handRank, totalScore: scoreResult.totalScore };
+        const scoreResult = calculateScore(evaluation, gameStore.selectedCards, jokersToApply);
 
-        const playedCardIds = new Set(selectedCards.value.map(c => c.id));
-        playerHand.value = playerHand.value.filter(card => !playedCardIds.has(card.id));
-        const cardsToDrawCount = selectedCards.value.length;
-        selectedCards.value = []; // Deselect cards
-        drawCards(cardsToDrawCount);
+        // 상태 업데이트: 직접 스토어에 값을 할당하여 반응성 보장
+        gameStore.currentRoundScore += scoreResult.totalScore;
+        gameStore.handsLeft -= 1; // handsLeft 감소
+        gameStore.lastPlayedHandInfo = { handRank: scoreResult.handRank, score: scoreResult.totalScore };
 
-        console.log(`Hand played. Round Score: ${currentRoundScore.value} / ${blind.targetScore}. Hands left: ${handsLeft.value}`);
+        const playedCardIds = new Set(gameStore.selectedCards.map(c => c.id));
+        // 플레이어 핸드 업데이트: 새 배열 할당으로 반응성 보장
+        gameStore.playerHand = gameStore.playerHand.filter(card => !playedCardIds.has(card.id));
+        gameStore.selectedCards = []; // 선택된 카드 초기화
+        drawCards(playedCardIds.size);
 
-        // Check for blind clear or game over condition
-        if (currentRoundScore.value >= blind.targetScore) {
+        if (currentBlind.value && gameStore.currentRoundScore >= currentBlind.value.targetScore) { // currentBlind null 체크 추가
             advanceToNextBlind();
-        } else if (handsLeft.value === 0) { // Check only handsLeft
-            // Check if score is insufficient when hands are depleted
-            if (currentRoundScore.value < blind.targetScore) {
-                handleGameOver();
-            }
-            // If score is met, advanceToNextBlind already handled it.
+        } else if (gameStore.handsLeft === 0) {
+             if(gameStore.discardsLeft === 0) {
+                 handleGameOver();
+             } else {
+                 console.log("Hands depleted, but discards remain.");
+                 // 손이 0이 되고 점수가 목표에 도달하지 못했는지 확인
+                 if (currentBlind.value && gameStore.currentRoundScore < currentBlind.value.targetScore) {
+                     console.log(`Failed to reach target score. Current: ${gameStore.currentRoundScore}, Target: ${currentBlind.value.targetScore}`);
+                     handleGameOver();
+                 }
+             }
         }
     };
 
+    // 카드 버리기
     const discardCards = () => {
-        if (!canDiscard.value) return; // Use getter ref
+        if (!gameStore.canDiscard || !currentBlind.value) return;
 
-        console.log("Discarding cards:", selectedCards.value.map(c => `${c.rank}${c.suit}`));
+        console.log("Attempting to discard cards...");
+        gameStore.lastPlayedHandInfo = null;
 
-        // Update state directly
-        discardsLeft.value--;
-        lastPlayedHandInfo.value = null; // Clear last played hand info
+        gameStore.discardsLeft -= 1;
 
-        const discardedCardIds = new Set(selectedCards.value.map(c => c.id));
-        playerHand.value = playerHand.value.filter(card => !discardedCardIds.has(card.id));
-        const cardsToDrawCount = selectedCards.value.length;
-        selectedCards.value = []; // Deselect cards
-        drawCards(cardsToDrawCount);
+        const discardedCardIds = new Set(gameStore.selectedCards.map(c => c.id));
+        gameStore.playerHand = gameStore.playerHand.filter(card => !discardedCardIds.has(card.id));
+        const numberOfDiscards = gameStore.selectedCards.length;
+        gameStore.selectedCards = [];
+        drawCards(numberOfDiscards);
 
-        console.log("Cards discarded. Discards left:", discardsLeft.value);
-
-        // Check for game over condition after discarding
-        const blind = currentBlind.value;
-        // Check if hands are left AND score is insufficient
-        if (handsLeft.value === 0 && blind && currentRoundScore.value < blind.targetScore) {
-             // Check only handsLeft and score
+        if (currentBlind.value && gameStore.handsLeft === 0 && gameStore.discardsLeft === 0 && gameStore.currentRoundScore < currentBlind.value.targetScore) {
             handleGameOver();
         }
     };
 
-    const restartGame = () => {
-        startGame(); // Simply call the startGame logic
+    // 반환할 함수들
+    return {
+        startGame,
+        restartGame,
+        toggleCardSelection,
+        playHand,
+        discardCards,
     };
-
-
-  // Return the functions that the component will use
-  return {
-    // Game flow functions
-    startGame,
-    restartGame,
-    // Player actions
-    toggleCardSelection,
-    playHand,
-    discardCards,
-    // Read-only state/getters (optional, component can get from store directly)
-    // playerHand, selectedCards, currentAnteIndex, currentRoundScore, handsLeft, discardsLeft, lastPlayedHandInfo, isGameOver, currentBlind, isSelected, canPlay, canDiscard
-  };
 }

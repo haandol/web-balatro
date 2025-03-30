@@ -144,33 +144,84 @@ export const evaluateHand = (cards: Card[]): EvaluatedHand | null => {
   return { rank: HandRank.HIGH_CARD, scoringCards: [sortedCards[0]] }; // 가장 높은 카드 한 장만
 };
 
-// 점수 계산 함수 (기본 버전)
-export const calculateScore = (evaluation: EvaluatedHand, playedCards: Card[]) => {
-  const baseScore = BASE_HAND_SCORES[evaluation.rank];
-  if (!baseScore) {
-      console.error("Invalid hand rank for scoring:", evaluation.rank);
-      return { chips: 0, multiplier: 0, totalScore: 0, handRank: evaluation.rank };
-  }
+// 점수 계산 함수 (조커 효과 반영)
+export const calculateScore = (
+    evaluation: EvaluatedHand,
+    playedCards: Card[],
+    activeJokers: Joker[] // 활성화된 조커 목록을 인자로 받음
+) => {
+    const baseScore = BASE_HAND_SCORES[evaluation.rank];
+    if (!baseScore) {
+        console.error("Invalid hand rank for scoring:", evaluation.rank);
+        return { chips: 0, addedMultiplier: 0, multipliedMultiplier: 1, totalScore: 0, handRank: evaluation.rank };
+    }
 
-  let totalChips = baseScore.chips;
-  let totalMultiplier = baseScore.multiplier;
+    let calculatedChips = baseScore.chips; // 기본 칩
+    let calculatedAddedMultiplier = baseScore.multiplier; // 기본 추가 승수 (+Mult)
+    let calculatedMultipliedMultiplier = 1; // 기본 곱하기 승수 (xMult) - 기본값은 1
 
-  // 플레이된 카드의 칩 값 합산
-  playedCards.forEach(card => {
-      totalChips += getCardChipValue(card);
-      // 여기에 카드 강화(enhancement), 에디션(edition) 효과 추가 예정
-  });
+    // 1. 플레이된 카드의 기본 칩 값 합산
+    let cardChips = 0;
+    playedCards.forEach(card => {
+        cardChips += getCardChipValue(card);
+        // TODO: 카드 강화(enhancement), 에디션(edition) 효과 (칩/승수) 추가 위치
+    });
+    calculatedChips += cardChips;
+    console.log(`--- Score Calculation ---`);
+    console.log(`Hand: ${evaluation.rank} (Base: ${baseScore.chips} Chips + ${baseScore.multiplier} Mult)`);
+    console.log(`Played Card Chips: ${cardChips}`);
 
-  // 조커 효과 추가 예정 (칩 추가, 멀티플라이어 추가/곱하기 등)
+    // 2. 조커 효과 적용 (순서대로)
+    console.log(`Applying ${activeJokers.length} Joker(s)...`);
+    activeJokers.forEach((joker, index) => {
+        const context: ScoreCalculationContext = {
+            playedCards,
+            evaluatedHand: evaluation,
+            currentChips: calculatedChips,
+            currentAddedMultiplier: calculatedAddedMultiplier,
+            // currentMultipliedMultiplier 도 필요시 전달
+        };
 
-  const finalScore = totalChips * totalMultiplier;
+        let jokerChips = 0;
+        let jokerAddedMult = 0;
+        let jokerMultMult = 1; // 곱셈 승수의 기본값은 1
 
-  console.log(`Hand: ${evaluation.rank}, Base: ${baseScore.chips} x ${baseScore.multiplier}, Card Chips: ${playedCards.map(getCardChipValue).join('+')}, Total Chips: ${totalChips}, Total Multiplier: ${totalMultiplier}, Final Score: ${finalScore}`);
+        // 2a. 칩 추가 효과
+        if (joker.calculateChips) {
+            jokerChips = joker.calculateChips(context);
+            calculatedChips += jokerChips;
+        }
+        // 2b. 승수 추가 효과 (+Mult)
+        if (joker.calculateAddedMultiplier) {
+            jokerAddedMult = joker.calculateAddedMultiplier(context);
+            calculatedAddedMultiplier += jokerAddedMult;
+        }
+        // 2c. 승수 곱하기 효과 (xMult) - 모든 +Mult 계산 후 마지막에 적용하기 위해 임시 저장
+        if (joker.calculateMultipliedMultiplier) {
+            jokerMultMult = joker.calculateMultipliedMultiplier(context);
+            // 곱셈 승수는 바로 곱하지 않고, 나중에 한꺼번에 곱함
+            calculatedMultipliedMultiplier *= jokerMultMult;
+        }
 
-  return {
-      chips: totalChips,
-      multiplier: totalMultiplier,
-      totalScore: finalScore,
-      handRank: evaluation.rank,
-  };
+        if (jokerChips || jokerAddedMult || jokerMultMult !== 1) {
+             console.log(`  Joker #${index + 1} (${joker.name}): +${jokerChips} Chips, +${jokerAddedMult} Mult, x${jokerMultMult} Mult`);
+        }
+    });
+
+    // 3. 최종 점수 계산: (총 칩) * (총 추가 승수) * (총 곱하기 승수)
+    // Balatro 실제 계산식은 조금 더 복잡할 수 있음: (칩 합계) * ( (+Mult 합계) * (xMult 곱) ) 인지 확인 필요
+    // 일반적으로 (칩 합계) * (+Mult 합계) 를 먼저 한 후, xMult 를 순서대로 곱하는 방식일 수 있음
+    // 여기서는 일단 단순화된 계산: (Total Chips) * (Total Added Mult) * (Product of xMult)
+    const finalScore = Math.round(calculatedChips * calculatedAddedMultiplier * calculatedMultipliedMultiplier); // 정수로 반올림 (게임 규칙에 따라 다름)
+
+    console.log(`Final Calculation: (${calculatedChips} Chips) * (${calculatedAddedMultiplier} Mult) * (${calculatedMultipliedMultiplier} xMult) = ${finalScore}`);
+    console.log(`--- End Calculation ---`);
+
+    return {
+        chips: calculatedChips,
+        addedMultiplier: calculatedAddedMultiplier,
+        multipliedMultiplier: calculatedMultipliedMultiplier,
+        totalScore: finalScore,
+        handRank: evaluation.rank,
+    };
 };

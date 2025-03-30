@@ -1,57 +1,79 @@
-import type { Card } from '@/utils/poker'; // HandRank 제거 (GameState에 포함됨)
+import type { Card, HandRank } from '@/utils/poker'; // HandRank 추가
 import { initialAntes, initialSuits, initialRanks } from '@/data/gameData'; // 데이터 임포트
-import type { Blind, Ante, GameState } from '@/types/game'; // 타입 임포트
+import type { Blind, GameState } from '@/types/game'; // 타입 임포트
+import type { Joker } from '@/utils/joker'; // Joker 타입 임포트
 
-// --- 데이터 구조 및 상태 로컬 정의 제거 ---
-// interface Blind { ... }
-// interface Ante { ... }
-// interface GameState { ... }
+// defineStore의 setup 함수 사용
+export const useGameStore = defineStore('game', () => {
+  // State (ref 사용)
+  const deck = ref<Card[]>([]);
+  const playerHand = ref<Card[]>([]);
+  const selectedCards = ref<Card[]>([]);
+  const cardIdCounter = ref(0);
+  const currentAnteIndex = ref(0);
+  const currentBlindIndex = ref(0);
+  const currentRoundScore = ref(0);
+  const handsLeft = ref(4);
+  const discardsLeft = ref(3);
+  const lastPlayedHandInfo = ref<{ handRank: HandRank; score: number } | null>(null); // HandRank 임포트 확인
+  const isGameOver = ref(false);
+  const handSize = ref(8);
+  const antes = ref(initialAntes); // initialAntes 사용
+  const suits = ref(initialSuits); // initialSuits 사용
+  const ranks = ref(initialRanks); // initialRanks 사용
+  const activeJokers = ref<Joker[]>([]);
+  const money = ref(4);
+  const maxJokerSlots = ref(5);
 
-// --- 데이터 로컬 정의 제거 (이미 완료됨) ---
+  // Getters (computed 사용)
+  const currentBlind = computed((): Blind | null => {
+    const ante = antes.value[currentAnteIndex.value];
+    if (ante && currentBlindIndex.value < ante.blinds.length) {
+      return ante.blinds[currentBlindIndex.value];
+    }
+    return null;
+  });
 
-export const useGameStore = defineStore('game', {
-  // state 타입으로 GameState 임포트 사용
-  state: (): GameState => ({
-    deck: [],
-    playerHand: [],
-    selectedCards: [],
-    cardIdCounter: 0,
-    currentAnteIndex: 0,
-    currentBlindIndex: 0,
-    currentRoundScore: 0,
-    handsLeft: 4,
-    discardsLeft: 3,
-    lastPlayedHandInfo: null,
-    isGameOver: false,
-    handSize: 8,
-    antes: initialAntes,
-    suits: initialSuits,
-    ranks: initialRanks,
-  }),
+  const isSelected = computed(() => {
+    const selectedIds = new Set(selectedCards.value.map(c => c.id));
+    return (card: Card) => selectedIds.has(card.id);
+  });
 
-  getters: {
-    // currentBlind 반환 타입으로 Blind 임포트 사용
-    currentBlind(state): Blind | null {
-      if (state.currentAnteIndex < state.antes.length && state.currentBlindIndex < state.antes[state.currentAnteIndex].blinds.length) {
-        return state.antes[state.currentAnteIndex].blinds[state.currentBlindIndex];
-      }
-      return null;
-    },
-    // isSelected 타입 Card 임포트 사용 (이미 Card 임포트됨)
-    isSelected(state): (card: Card) => boolean {
-      const selectedIds = new Set(state.selectedCards.map(c => c.id));
-      return (card: Card) => selectedIds.has(card.id);
-    },
-    // canPlay, canDiscard 변경 없음
-    canPlay(state): boolean {
-        return state.selectedCards.length > 0 && state.selectedCards.length <= 5 && state.handsLeft > 0 && !state.isGameOver;
-    },
-    canDiscard(state): boolean {
-        return state.selectedCards.length > 0 && state.selectedCards.length <= 5 && state.discardsLeft > 0 && !state.isGameOver;
-    },
-  },
+  const canPlay = computed((): boolean => {
+    return selectedCards.value.length > 0 && selectedCards.value.length <= 5 && handsLeft.value > 0 && !isGameOver.value;
+  });
 
-  actions: {
-    // 변경 없음 (비어 있음)
-  },
+  const canDiscard = computed((): boolean => {
+    return selectedCards.value.length > 0 && selectedCards.value.length <= 5 && discardsLeft.value > 0 && !isGameOver.value;
+  });
+
+  // Actions (일반 함수로 정의)
+  // actions 내용은 비어 있으므로, 필요 시 여기에 함수 추가
+
+  // 상태, 게터, 액션 반환
+  return {
+    deck,
+    playerHand,
+    selectedCards,
+    cardIdCounter,
+    currentAnteIndex,
+    currentBlindIndex,
+    currentRoundScore,
+    handsLeft,
+    discardsLeft,
+    lastPlayedHandInfo,
+    isGameOver,
+    handSize,
+    antes,
+    suits,
+    ranks,
+    activeJokers,
+    money,
+    maxJokerSlots,
+    currentBlind,
+    isSelected,
+    canPlay,
+    canDiscard,
+    // 여기에 액션 함수들을 추가
+  };
 });

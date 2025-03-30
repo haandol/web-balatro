@@ -1,7 +1,7 @@
 <template>
   <div class="game-info">
     <div v-if="lastPlayedHandInfo">
-      Played: {{ lastPlayedHandInfo.handRank }} (Score: {{ lastPlayedHandInfo.totalScore.toLocaleString() }})
+      Played: {{ lastPlayedHandInfo.handRank }} (Score: {{ lastPlayedHandInfo.score.toLocaleString() }})
     </div>
     <div v-else>
       <p>Selected: {{ selectedCardsCount }} / 5</p>
@@ -16,7 +16,7 @@ import type { HandRank } from '@/utils/poker'; // HandRank 타입 임포트
 
 interface LastPlayedHandInfo {
   handRank: HandRank;
-  totalScore: number;
+  score: number; // totalScore에서 score로 변경
 }
 
 defineProps<{
