@@ -1,18 +1,24 @@
 <template>
-  <div class="w-full p-2.5 bg-[#1e1e1e] rounded-lg border-2 border-[#444] mb-5">
-    <h3
-      class="font-['Press_Start_2P'] text-[#ffd700] text-center m-0 mb-2.5 text-sm shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
-      조커 슬롯
-    </h3>
-    <div class="flex flex-wrap gap-2.5 justify-center p-1">
-      <div v-for="(joker, index) in activeJokers" :key="joker.id" class="w-[90px] h-[120px] mx-1">
-        <JokerCard :joker="joker" :index="index" @select="onJokerSelect" />
-      </div>
-      <!-- 빈 슬롯 표시 -->
-      <div v-for="i in emptySlots" :key="`empty-${i}`" class="w-[90px] h-[120px] mx-1">
-        <div
-          class="w-[90px] h-[120px] bg-white/10 border-2 border-dashed border-[#444] rounded-lg flex items-center justify-center text-[#777] text-[10px] font-['Press_Start_2P']">
-          비어있음
+  <div class="bg-[#1a1a1a75] rounded-lg p-2 sm:p-3">
+    <div class="text-center text-sm text-white mb-2">
+      <h2>조커 ({{ activeJokers.length }}/{{ maxSlots }})</h2>
+    </div>
+
+    <!-- 모바일에서는 가로 스크롤, 데스크톱에서는 그리드 레이아웃 -->
+    <div class="overflow-x-auto md:overflow-hidden pb-2 md:pb-0">
+      <div class="flex md:flex-wrap md:justify-center gap-2 min-w-fit">
+        <div v-for="(joker, index) in activeJokers" :key="joker.id" class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 bg-[#202c3a] rounded-lg border-2 border-[#3a4d5c] p-1 md:p-2
+            flex flex-col justify-between items-center cursor-pointer
+            hover:border-[#ffd700] hover:bg-[#25354a] transition-all duration-150"
+          @click="emit('select-joker', joker, index)">
+          <div class="text-xs text-center text-[#8df] line-clamp-2">{{ joker.name }}</div>
+          <div class="text-xs text-center text-white mt-2">{{ joker.description }}</div>
+        </div>
+
+        <!-- 빈 슬롯 표시 -->
+        <div v-for="i in Math.max(0, maxSlots - activeJokers.length)" :key="`empty-${i}`" class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 bg-[#1a1a1a] rounded-lg border-2 border-dashed border-[#3a3a3a] 
+            flex items-center justify-center">
+          <span class="text-[#5a5a5a] text-2xl">+</span>
         </div>
       </div>
     </div>
@@ -20,28 +26,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import JokerCard from './JokerCard.vue';
 import type { Joker } from '@/utils/joker';
 
-// Props 정의
 const props = defineProps<{
   activeJokers: Joker[];
   maxSlots: number;
 }>();
 
-// 이벤트 정의
 const emit = defineEmits<{
   (e: 'select-joker', joker: Joker, index: number): void;
 }>();
-
-// 비어있는 슬롯 수 계산
-const emptySlots = computed(() => {
-  return Math.max(0, props.maxSlots - props.activeJokers.length);
-});
-
-// 조커 선택 이벤트 핸들러
-const onJokerSelect = (joker: Joker, index: number) => {
-  emit('select-joker', joker, index);
-};
 </script>

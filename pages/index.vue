@@ -1,44 +1,49 @@
 <template>
   <div id="app"
-    class="font-['Press_Start_2P'] p-5 bg-[#2d5a3a] max-w-[1200px] mx-auto rounded-none shadow-lg relative text-white min-h-[95vh] flex flex-col transition-colors duration-300"
+    class="font-['Press_Start_2P'] p-2 sm:p-5 bg-[#2d5a3a] max-w-[1200px] mx-auto rounded-none shadow-lg relative text-white min-h-[95vh] flex flex-col transition-colors duration-300"
     :class="{ 'bg-[#3a2d2d]': isGameOver }">
     <!-- 조커 상점 컴포넌트 추가 -->
     <JokerShop />
 
     <GameOverMessage :visible="isGameOver" @restart="restartGame" />
 
-    <div class="flex gap-5">
-      <!-- 좌측 정보 패널 -->
-      <GameInfoPanel :current-blind="currentBlind" :current-round-score="currentRoundScore" :hand-type="currentHandType"
-        :hand-chips="currentHandChips" :hand-multiplier="currentHandMultiplier"
-        :last-played-hand-info="formattedLastPlayedHandInfo" :hands-left="handsLeft" :discards-left="discardsLeft"
-        :money="money" />
+    <!-- 모바일 화면에서는 세로 방향, 데스크톱에서는 가로 방향 -->
+    <div class="flex flex-col md:flex-row gap-3 md:gap-5">
+      <!-- 좌측 정보 패널 (모바일에서는 상단에 표시) -->
+      <div class="md:w-[280px] w-full">
+        <GameInfoPanel :current-blind="currentBlind" :current-round-score="currentRoundScore"
+          :hand-type="currentHandType" :hand-chips="currentHandChips" :hand-multiplier="currentHandMultiplier"
+          :last-played-hand-info="formattedLastPlayedHandInfo" :hands-left="handsLeft" :discards-left="discardsLeft"
+          :money="money" />
+      </div>
 
       <!-- 중앙 게임 영역 -->
-      <div class="flex-1 flex flex-col gap-5">
+      <div class="flex-1 flex flex-col gap-3 md:gap-5">
         <!-- 조커 슬롯 -->
         <JokerSlot :active-jokers="activeJokers" :max-slots="maxJokerSlots" @select-joker="onJokerSelect" />
 
         <!-- 카드 영역 -->
-        <div class="flex-1 flex flex-col gap-5 bg-[#1a1a1a75] rounded-lg p-5">
+        <div class="flex-1 flex flex-col gap-3 md:gap-5 bg-[#1a1a1a75] rounded-lg p-3 md:p-5">
           <!-- 선택된 카드들 -->
           <SelectedCardsArea :selected-cards="selectedCards" :empty-slots="emptySelectedSlots" />
 
           <!-- 플레이어 핸드 -->
-          <div class="flex flex-wrap justify-center gap-4">
+          <div class="flex flex-wrap justify-center gap-2 md:gap-4">
             <GameCard v-for="card in playerHand" :key="card.id" :card="card" :is-selected="isSelected(card)"
               :is-disabled="isGameOver" @select="toggleCardSelection(card)" />
           </div>
         </div>
-
-        <!-- 컨트롤 버튼 -->
-        <GameControls :can-play="canPlay" :can-discard="canDiscard" :hands-left="handsLeft"
-          :discards-left="discardsLeft" @play-hand="playHand" @discard-cards="discardCards" />
       </div>
     </div>
 
+    <!-- 하단 고정 컨트롤 -->
+    <div class="mt-3 md:mt-5 sticky bottom-0 z-10">
+      <GameControls :can-play="canPlay" :can-discard="canDiscard" :hands-left="handsLeft" :discards-left="discardsLeft"
+        @play-hand="playHand" @discard-cards="discardCards" />
+    </div>
+
     <!-- 우측 하단 카드 덱 -->
-    <CardDeck :hands-left="handsLeft" :discards-left="discardsLeft" />
+    <CardDeck :hands-left="handsLeft" :discards-left="discardsLeft" class="hidden md:block" />
   </div>
 </template>
 
