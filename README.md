@@ -1,5 +1,7 @@
 # Web Balatro Clone
 
+![clone](/docs/screenshot.png)
+
 ## Project Introduction
 이 프로젝트는 인기 로그라이크 카드 게임 Balatro의 클론 버전으로, Vue 3, Nuxt 3, TypeScript, Tailwind CSS를 사용하여 개발되었습니다. 포커 메커니즘과 덱 빌딩 전략을 결합한 게임으로, 플레이어는 전략적인 포커 핸드를 사용하여 점수를 얻고 블라인드를 격파해 나갑니다.
 
