@@ -41,9 +41,6 @@
       <GameControls :can-play="canPlay" :can-discard="canDiscard" :hands-left="handsLeft" :discards-left="discardsLeft"
         @play-hand="playHand" @discard-cards="discardCards" />
     </div>
-
-    <!-- 우측 하단 카드 덱 -->
-    <CardDeck :hands-left="handsLeft" :discards-left="discardsLeft" class="hidden md:block" />
   </div>
 </template>
 

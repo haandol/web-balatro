@@ -12,8 +12,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, defineEmits } from 'vue';
-
 interface Card {
   id: number;
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';

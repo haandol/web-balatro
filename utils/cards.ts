@@ -13,17 +13,17 @@ export interface Card {
 
 export const createCard = (suit: Suit, rank: Rank): Card => {
   let value = 0;
-  
+
   if (rank === 'A') value = 14;
   else if (rank === 'K') value = 13;
   else if (rank === 'Q') value = 12;
   else if (rank === 'J') value = 11;
   else value = parseInt(rank, 10);
-  
+
   return {
     id: Date.now() + Math.floor(Math.random() * 1000),
     suit,
     rank,
     value
   };
-}; 
+};

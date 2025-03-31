@@ -16,7 +16,7 @@
         </div>
 
         <!-- 빈 슬롯 표시 -->
-        <div v-for="i in Math.max(0, maxSlots - activeJokers.length)" :key="`empty-${i}`" class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 bg-[#1a1a1a] rounded-lg border-2 border-dashed border-[#3a3a3a] 
+        <div v-for="i in Math.max(0, maxSlots - activeJokers.length)" :key="`empty-${i}`" class="flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 bg-[#1a1a1a] rounded-lg border-2 border-dashed border-[#3a3a3a]
             flex items-center justify-center">
           <span class="text-[#5a5a5a] text-2xl">+</span>
         </div>
@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import type { Joker } from '@/utils/joker';
 
-const props = defineProps<{
+defineProps<{
   activeJokers: Joker[];
   maxSlots: number;
 }>();

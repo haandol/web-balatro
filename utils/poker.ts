@@ -1,13 +1,4 @@
-// Card 인터페이스 (pages/index.vue 와 동일하게 유지)
-export interface Card {
-  id: number;
-  suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
-  rank: string; // '2', '3', ..., '10', 'J', 'Q', 'K', 'A'
-  // 향후 강화, 에디션, 봉인 등을 위한 속성 추가 가능
-  enhancement?: string;
-  edition?: string;
-  seal?: string;
-}
+import type { Card } from './cards';
 
 // 포커 핸드 타입 정의
 export enum HandRank {

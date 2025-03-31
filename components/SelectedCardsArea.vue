@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import GameCard from './GameCard.vue';
-import type { Card } from '@/utils/poker';
+import type { Card } from '@/utils/cards';
 
 defineProps<{
   selectedCards: Card[];
