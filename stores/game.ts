@@ -6,6 +6,7 @@ import type { Joker } from '~/types/joker'
 import { createDeck, shuffle, draw } from '~/utils/deck'
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { type BlindType, BLIND_ORDER, MAX_ANTE, getTargetScore, BLIND_REWARDS } from '~/data/blinds'
+import { JOKER_DEFINITIONS, MAX_JOKER_SLOTS } from '~/data/jokers'
 
 export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'won' | 'lost'
 
@@ -52,7 +53,13 @@ export const useGameStore = defineStore('game', () => {
     targetScore.value = 0
     lastHandResult.value = null
     roundReward.value = 0
-    jokers.value = []
+
+    // 테스트용 랜덤 조커 2개 부여 (상점 미구현)
+    const shuffledDefs = shuffle([...JOKER_DEFINITIONS])
+    jokers.value = shuffledDefs.slice(0, 2).map((def, i) => ({
+      ...def,
+      id: `joker-${Date.now()}-${i}`,
+    }))
 
     // 덱 초기화
     const deck = shuffle(createDeck())
@@ -102,6 +109,27 @@ export const useGameStore = defineStore('game', () => {
       // 앤티 8 보스 클리어 — 승리
       gamePhase.value = 'won'
     }
+  }
+
+  // --- F6: Joker Actions ---
+
+  function addJoker(joker: Joker): boolean {
+    if (jokers.value.length >= MAX_JOKER_SLOTS) return false
+    jokers.value = [...jokers.value, joker]
+    return true
+  }
+
+  function removeJoker(jokerId: string) {
+    jokers.value = jokers.value.filter((j) => j.id !== jokerId)
+  }
+
+  function reorderJokers(fromIndex: number, toIndex: number) {
+    if (fromIndex < 0 || fromIndex >= jokers.value.length) return
+    if (toIndex < 0 || toIndex >= jokers.value.length) return
+    const arr = [...jokers.value]
+    const [moved] = arr.splice(fromIndex, 1)
+    arr.splice(toIndex, 0, moved)
+    jokers.value = arr
   }
 
   // --- F1: Deck Actions ---
@@ -201,6 +229,9 @@ export const useGameStore = defineStore('game', () => {
     initRun,
     startBlind,
     advanceBlind,
+    addJoker,
+    removeJoker,
+    reorderJokers,
     drawCards,
     reshuffleDeck,
     discardFromHand,

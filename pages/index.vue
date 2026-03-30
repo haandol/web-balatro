@@ -107,6 +107,11 @@ onMounted(() => {
           </div>
         </header>
 
+        <!-- Joker Slots -->
+        <div class="mb-4">
+          <JokerJokerSlots />
+        </div>
+
         <!-- ===== BLIND SELECT PHASE ===== -->
         <template v-if="gamePhase === 'blind_select'">
           <div class="flex-1 flex items-center justify-center">

@@ -1,7 +1,38 @@
 import type { PlayingCard, Rank } from '~/types/card'
 import type { PokerHandType, HandResult, ScoreBreakdown } from '~/types/poker'
-import type { Joker } from '~/types/joker'
+import type { Joker, JokerTrigger } from '~/types/joker'
 import { RANK_CHIPS } from '~/data/cards'
+
+const FACE_RANKS: Set<Rank> = new Set(['J', 'Q', 'K'])
+
+/** 핸드 타입 포함 관계: Full House는 ONE_PAIR + THREE_OF_A_KIND를 "포함" */
+const HAND_CONTAINS: Record<PokerHandType, PokerHandType[]> = {
+  HIGH_CARD: ['HIGH_CARD'],
+  ONE_PAIR: ['ONE_PAIR'],
+  TWO_PAIR: ['TWO_PAIR', 'ONE_PAIR'],
+  THREE_OF_A_KIND: ['THREE_OF_A_KIND'],
+  STRAIGHT: ['STRAIGHT'],
+  FLUSH: ['FLUSH'],
+  FULL_HOUSE: ['FULL_HOUSE', 'ONE_PAIR', 'THREE_OF_A_KIND'],
+  FOUR_OF_A_KIND: ['FOUR_OF_A_KIND', 'ONE_PAIR'],
+  STRAIGHT_FLUSH: ['STRAIGHT_FLUSH', 'STRAIGHT', 'FLUSH'],
+  ROYAL_FLUSH: ['ROYAL_FLUSH', 'STRAIGHT_FLUSH', 'STRAIGHT', 'FLUSH'],
+}
+
+function evaluateTrigger(trigger: JokerTrigger, scoringCards: PlayingCard[], handType: PokerHandType): number {
+  switch (trigger.type) {
+    case 'always':
+      return 1
+    case 'if_hand':
+      return HAND_CONTAINS[handType].includes(trigger.handType) ? 1 : 0
+    case 'per_suit':
+      return scoringCards.filter((c) => c.suit === trigger.suit).length
+    case 'per_face_card':
+      return scoringCards.filter((c) => FACE_RANKS.has(c.rank)).length
+    case 'if_hand_size_lte':
+      return scoringCards.length <= trigger.size ? 1 : 0
+  }
+}
 
 const HAND_BASE: Record<PokerHandType, { name: string; chips: number; mult: number }> = {
   HIGH_CARD: { name: 'High Card', chips: 5, mult: 1 },
@@ -98,9 +129,7 @@ export function evaluateHand(cards: PlayingCard[]): HandResult {
   const isStraight = straightCards !== null
 
   // 그룹 크기별 분류
-  const groups = [...counts.entries()].sort(
-    (a, b) => b[1].length - a[1].length || RANK_ORDER[b[0]] - RANK_ORDER[a[0]]
-  )
+  const groups = [...counts.entries()].sort((a, b) => b[1].length - a[1].length || RANK_ORDER[b[0]] - RANK_ORDER[a[0]])
 
   const groupSizes = groups.map(([, g]) => g.length)
 
@@ -176,7 +205,7 @@ export function calculateHandScore(result: HandResult): number {
  * 조커 포함 점수 계산.
  * 1. totalChips = baseChips + sum(scoring card chips)
  * 2. totalMult = baseMult
- * 3. 조커 왼→오 순차 적용: add_chips → totalChips, add_mult → totalMult, x_mult → totalMult
+ * 3. 조커 왼→오 순차 적용 (트리거 조건 평가 후): add_chips → totalChips, add_mult → totalMult, x_mult → totalMult
  * 4. finalScore = round(totalChips × totalMult)
  */
 export function calculateScore(result: HandResult, jokers: Joker[] = []): ScoreBreakdown {
@@ -185,15 +214,22 @@ export function calculateScore(result: HandResult, jokers: Joker[] = []): ScoreB
   let totalMult = result.baseMult
 
   for (const joker of jokers) {
+    const times = evaluateTrigger(joker.effect.trigger, result.scoringCards, result.type)
+    if (times <= 0) continue
+
+    const effectValue = joker.effect.value * times
     switch (joker.effect.type) {
       case 'add_chips':
-        totalChips += joker.effect.value
+        totalChips += effectValue
         break
       case 'add_mult':
-        totalMult += joker.effect.value
+        totalMult += effectValue
         break
       case 'x_mult':
-        totalMult *= joker.effect.value
+        // xMult는 횟수만큼 반복 곱셈
+        for (let i = 0; i < times; i++) {
+          totalMult *= joker.effect.value
+        }
         break
     }
   }

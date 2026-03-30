@@ -1,6 +1,6 @@
 # ADR-007: 조커 시스템 (F6)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F6 — 조커 시스템 (`specs/web-balatro.alps.md` Section 7.6)
 
@@ -97,12 +97,12 @@ function evaluateTrigger(trigger: JokerTrigger, context: ScoreContext): number
 
 | 항목 | 상태 |
 |---|---|
-| 최대 5개의 조커를 슬롯에 장착할 수 있다 | ❌ 미구현 |
-| 조커의 패시브/조건부/xMult 효과가 정확히 적용된다 | ❌ 미구현 (단순 3종만 지원) |
-| 드래그로 조커 위치를 재배열할 수 있다 | ❌ 미구현 |
+| 최대 5개의 조커를 슬롯에 장착할 수 있다 | ✅ 완료 |
+| 조커의 패시브/조건부/xMult 효과가 정확히 적용된다 | ✅ 완료 (트리거 시스템) |
+| 드래그로 조커 위치를 재배열할 수 있다 | ❌ 미구현 (reorderJokers API만 준비) |
 | 조커를 판매하여 자금을 획득할 수 있다 | ❌ 미구현 (F10 연동 필요) |
-| 슬롯이 가득 찬 경우 새 조커를 획득할 수 없다 | ❌ 미구현 |
-| 조커 탭 시 능력 설명이 표시된다 | ❌ 미구현 |
+| 슬롯이 가득 찬 경우 새 조커를 획득할 수 없다 | ✅ 완료 |
+| 조커 탭 시 능력 설명이 표시된다 | ✅ 완료 (툴팁) |
 
 ## Consequences
 

@@ -1,0 +1,111 @@
+import type { JokerDefinition } from '~/types/joker'
+
+export const JOKER_DEFINITIONS: JokerDefinition[] = [
+  {
+    name: 'Joker',
+    description: '+4 Mult',
+    rarity: 'common',
+    effect: { trigger: { type: 'always' }, type: 'add_mult', value: 4 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Greedy Joker',
+    description: 'Played cards with Diamond suit give +3 Mult',
+    rarity: 'common',
+    effect: { trigger: { type: 'per_suit', suit: 'diamonds' }, type: 'add_mult', value: 3 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Lusty Joker',
+    description: 'Played cards with Heart suit give +3 Mult',
+    rarity: 'common',
+    effect: { trigger: { type: 'per_suit', suit: 'hearts' }, type: 'add_mult', value: 3 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Wrathful Joker',
+    description: 'Played cards with Spade suit give +3 Mult',
+    rarity: 'common',
+    effect: { trigger: { type: 'per_suit', suit: 'spades' }, type: 'add_mult', value: 3 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Gluttonous Joker',
+    description: 'Played cards with Club suit give +3 Mult',
+    rarity: 'common',
+    effect: { trigger: { type: 'per_suit', suit: 'clubs' }, type: 'add_mult', value: 3 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Half Joker',
+    description: '+20 Mult if played hand has 3 or fewer cards',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand_size_lte', size: 3 }, type: 'add_mult', value: 20 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Scary Face',
+    description: 'Played face cards give +30 Chips each',
+    rarity: 'common',
+    effect: { trigger: { type: 'per_face_card' }, type: 'add_chips', value: 30 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Jolly Joker',
+    description: '+8 Mult if played hand contains a Pair',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'ONE_PAIR' }, type: 'add_mult', value: 8 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Zany Joker',
+    description: '+12 Mult if played hand contains Three of a Kind',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'THREE_OF_A_KIND' }, type: 'add_mult', value: 12 },
+    sellPrice: 3,
+  },
+  {
+    name: 'Mad Joker',
+    description: '+10 Mult if played hand contains Two Pair',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'TWO_PAIR' }, type: 'add_mult', value: 10 },
+    sellPrice: 3,
+  },
+  {
+    name: 'Sly Joker',
+    description: '+50 Chips if played hand contains a Pair',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'ONE_PAIR' }, type: 'add_chips', value: 50 },
+    sellPrice: 2,
+  },
+  {
+    name: 'Clever Joker',
+    description: '+80 Chips if played hand contains Two Pair',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'TWO_PAIR' }, type: 'add_chips', value: 80 },
+    sellPrice: 3,
+  },
+  {
+    name: 'Devious Joker',
+    description: '+100 Chips if played hand contains a Straight',
+    rarity: 'common',
+    effect: { trigger: { type: 'if_hand', handType: 'STRAIGHT' }, type: 'add_chips', value: 100 },
+    sellPrice: 3,
+  },
+  {
+    name: 'The Duo',
+    description: 'x2 Mult if played hand contains a Pair',
+    rarity: 'rare',
+    effect: { trigger: { type: 'if_hand', handType: 'ONE_PAIR' }, type: 'x_mult', value: 2 },
+    sellPrice: 5,
+  },
+  {
+    name: 'The Trio',
+    description: 'x3 Mult if played hand contains Three of a Kind',
+    rarity: 'rare',
+    effect: { trigger: { type: 'if_hand', handType: 'THREE_OF_A_KIND' }, type: 'x_mult', value: 3 },
+    sellPrice: 5,
+  },
+]
+
+export const MAX_JOKER_SLOTS = 5
