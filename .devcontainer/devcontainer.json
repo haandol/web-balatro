@@ -2,12 +2,12 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
   "name": "Node.js & TypeScript",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:24-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/aws-cli:1": {},
-    "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:1": {},
     "ghcr.io/devcontainers/features/sshd:1": {},
-    "ghcr.io/devcontainers-community/npm-features/prettier:1": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:2": {},
     "ghcr.io/georgofenbeck/features/lazygit-linuxbinary:1": {}
   },
   "customizations": {
@@ -20,18 +20,16 @@
         "antfu.vite",
         "antfu.iconify",
         "bradlc.vscode-tailwindcss",
-        "vunguyentuan.vscode-postcss",
+        "esbenp.prettier-vscode",
+        "usernamehw.errorlens",
         "PKief.material-icon-theme",
         "aaron-bond.better-comments",
-        "jasonnutter.search-node-modules",
         "shardulm94.trailing-spaces",
-        "esbenp.prettier-vscode",
-        "YoavBls.pretty-ts-errors",
         "christian-kohler.path-intellisense",
         "christian-kohler.npm-intellisense",
         "dbaeumer.vscode-eslint",
-        "ClemensPeters.format-json",
         "oderwat.indent-rainbow",
+        "mhutchie.git-graph",
         "ChaitanyaShahare.lazygit"
       ]
     }
@@ -39,5 +37,6 @@
   "mounts": [
     "source=${env:HOME}${env:USERPROFILE}/.aws,target=/root/.aws,type=bind",
     "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/root/.ssh,type=bind"
-  ]
+  ],
+  "shutdownAction": "none"
 }
