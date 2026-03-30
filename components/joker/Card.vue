@@ -38,7 +38,7 @@ const rarityLabel = computed(() => {
       @click="showTooltip = !showTooltip"
     >
       <span class="text-xl md:text-2xl">&#129313;</span>
-      <span class="text-[8px] md:text-[9px] text-white/80 font-bold leading-tight text-center px-0.5 truncate w-full">
+      <span class="text-[7px] md:text-[8px] text-white/90 font-bold leading-tight text-center px-1 line-clamp-2">
         {{ joker.name }}
       </span>
     </button>

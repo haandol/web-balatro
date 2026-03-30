@@ -9,7 +9,7 @@ const emptySlots = computed(() => MAX_JOKER_SLOTS - jokers.value.length)
 
 <template>
   <div class="flex items-center justify-center gap-1.5 md:gap-2">
-    <JokerJokerCard
+    <JokerCard
       v-for="joker in jokers"
       :key="joker.id"
       :joker="joker"
@@ -18,9 +18,9 @@ const emptySlots = computed(() => MAX_JOKER_SLOTS - jokers.value.length)
     <div
       v-for="i in emptySlots"
       :key="`empty-${i}`"
-      class="w-[56px] h-[76px] md:w-[72px] md:h-[96px] rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center"
+      class="w-[56px] h-[76px] md:w-[72px] md:h-[96px] rounded-lg border-2 border-dashed border-white/20 bg-white/5 flex items-center justify-center"
     >
-      <span class="text-white/10 text-xs">+</span>
+      <span class="text-white/20 text-lg">+</span>
     </div>
   </div>
 </template>

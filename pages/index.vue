@@ -119,7 +119,7 @@ onMounted(() => {
 
         <!-- Joker Slots -->
         <div class="mb-4">
-          <JokerJokerSlots />
+          <JokerSlots />
         </div>
 
         <!-- ===== BLIND SELECT PHASE ===== -->
@@ -359,7 +359,7 @@ onMounted(() => {
                     :key="joker.id"
                     class="flex flex-col items-center gap-2"
                   >
-                    <JokerJokerCard :joker="joker" />
+                    <JokerCard :joker="joker" />
                     <div class="text-xs text-gray-400">${{ getJokerPrice(joker) }}</div>
                     <button
                       class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
