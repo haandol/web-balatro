@@ -19,3 +19,9 @@ export interface HandResult {
   baseMult: number
   scoringCards: PlayingCard[]
 }
+
+export interface ScoreBreakdown {
+  totalChips: number
+  totalMult: number
+  finalScore: number
+}

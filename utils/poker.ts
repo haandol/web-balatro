@@ -1,5 +1,6 @@
 import type { PlayingCard, Rank } from '~/types/card'
-import type { PokerHandType, HandResult } from '~/types/poker'
+import type { PokerHandType, HandResult, ScoreBreakdown } from '~/types/poker'
+import type { Joker } from '~/types/joker'
 import { RANK_CHIPS } from '~/data/cards'
 
 const HAND_BASE: Record<PokerHandType, { name: string; chips: number; mult: number }> = {
@@ -164,9 +165,42 @@ function makeResult(type: PokerHandType, scoringCards: PlayingCard[]): HandResul
   }
 }
 
-/** 기본 점수 계산: (baseChips + scoring cards chips) × baseMult */
+/** 기본 점수 계산: (baseChips + scoring cards chips) × baseMult (조커 미적용) */
 export function calculateHandScore(result: HandResult): number {
   const cardChips = result.scoringCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
   const totalChips = result.baseChips + cardChips
   return Math.round(totalChips * result.baseMult)
+}
+
+/**
+ * 조커 포함 점수 계산.
+ * 1. totalChips = baseChips + sum(scoring card chips)
+ * 2. totalMult = baseMult
+ * 3. 조커 왼→오 순차 적용: add_chips → totalChips, add_mult → totalMult, x_mult → totalMult
+ * 4. finalScore = round(totalChips × totalMult)
+ */
+export function calculateScore(result: HandResult, jokers: Joker[] = []): ScoreBreakdown {
+  const cardChips = result.scoringCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
+  let totalChips = result.baseChips + cardChips
+  let totalMult = result.baseMult
+
+  for (const joker of jokers) {
+    switch (joker.effect.type) {
+      case 'add_chips':
+        totalChips += joker.effect.value
+        break
+      case 'add_mult':
+        totalMult += joker.effect.value
+        break
+      case 'x_mult':
+        totalMult *= joker.effect.value
+        break
+    }
+  }
+
+  return {
+    totalChips,
+    totalMult,
+    finalScore: Math.round(totalChips * totalMult),
+  }
 }

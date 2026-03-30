@@ -10,7 +10,7 @@
 | [002](./002-hand-play.md) | 핸드 플레이 (F2) | Accepted | 2026-03-31 |
 | [003](./003-card-discard.md) | 카드 버리기 (F3) | Accepted | 2026-03-31 |
 | [004](./004-poker-hand-recognition.md) | 표준 포커 핸드 인식 (F4) | Accepted | 2026-03-31 |
-| [005](./005-score-calculation-engine.md) | 점수 계산 엔진 (F5) | Proposed | 2026-03-31 |
+| [005](./005-score-calculation-engine.md) | 점수 계산 엔진 (F5) | Accepted | 2026-03-31 |
 
 ## 작성 규칙
 

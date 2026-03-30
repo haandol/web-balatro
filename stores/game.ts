@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { PlayingCard } from '~/types/card'
-import type { HandResult } from '~/types/poker'
+import type { HandResult, ScoreBreakdown } from '~/types/poker'
+import type { Joker } from '~/types/joker'
 import { createDeck, shuffle, draw } from '~/utils/deck'
-import { evaluateHand, calculateHandScore } from '~/utils/poker'
+import { evaluateHand, calculateScore } from '~/utils/poker'
 
 export const useGameStore = defineStore('game', () => {
   const DEFAULT_HAND_SIZE = 8
@@ -21,8 +22,11 @@ export const useGameStore = defineStore('game', () => {
   const discardsRemaining = ref(DEFAULT_DISCARDS)
   const roundScore = ref(0)
   const targetScore = ref(DEFAULT_TARGET_SCORE)
-  const lastHandResult = ref<(HandResult & { score: number }) | null>(null)
+  const lastHandResult = ref<(HandResult & ScoreBreakdown) | null>(null)
   const gamePhase = ref<'playing' | 'won' | 'lost'>('playing')
+
+  // --- F5/F6: Jokers ---
+  const jokers = ref<Joker[]>([])
 
   // --- Getters ---
   const drawPileSize = computed(() => drawPile.value.length)
@@ -44,6 +48,7 @@ export const useGameStore = defineStore('game', () => {
     targetScore.value = DEFAULT_TARGET_SCORE
     lastHandResult.value = null
     gamePhase.value = 'playing'
+    jokers.value = []
   }
 
   function drawCards(count: number) {
@@ -80,13 +85,13 @@ export const useGameStore = defineStore('game', () => {
     const playedCards = hand.value.filter((c) => cardIds.includes(c.id))
     if (playedCards.length === 0) return
 
-    // 포커 핸드 판별 및 점수 계산
+    // 포커 핸드 판별 및 점수 계산 (조커 효과 반영)
     const result = evaluateHand(playedCards)
-    const score = calculateHandScore(result)
+    const breakdown = calculateScore(result, jokers.value)
 
     // 상태 갱신
-    lastHandResult.value = { ...result, score }
-    roundScore.value += score
+    lastHandResult.value = { ...result, ...breakdown }
+    roundScore.value += breakdown.finalScore
     handsRemaining.value -= 1
 
     // 플레이된 카드를 discard pile로 이동
@@ -129,6 +134,7 @@ export const useGameStore = defineStore('game', () => {
     targetScore,
     lastHandResult,
     gamePhase,
+    jokers,
     // Getters
     drawPileSize,
     handSize,

@@ -1,6 +1,6 @@
 # ADR-005: 점수 계산 엔진 (F5)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F5 — 점수 계산 엔진 (`specs/web-balatro.alps.md` Section 7.5)
 
@@ -69,11 +69,12 @@ interface Joker {
 | 항목 | 상태 |
 |---|---|
 | 기본 칩 + 카드 랭크 칩 정확히 합산 | ✅ 완료 |
-| 조커 보너스 왼→오 순서 적용 | ❌ 미구현 |
-| +Chips 합산, +Mult 합산, xMult 곱셈 처리 | ❌ 미구현 |
-| 최종 점수 = 총 칩 × 총 승수 정확히 계산 | ✅ 완료 (조커 제외) |
+| 조커 보너스 왼→오 순서 적용 | ✅ 완료 (calculateScore) |
+| +Chips 합산, +Mult 합산, xMult 곱셈 처리 | ✅ 완료 |
+| 최종 점수 = 총 칩 × 총 승수 정확히 계산 | ✅ 완료 |
+| 조커 순서 변경 시 점수 차이 | ✅ 완료 (순차 적용으로 자동 반영) |
+| 프리뷰에 totalChips × totalMult 분해 표시 | ✅ 완료 |
 | 점수 계산 과정 애니메이션 시각화 | ❌ 미구현 |
-| 조커 순서 변경 시 점수 차이 | ❌ 미구현 (F6 의존) |
 
 ## Consequences
 
