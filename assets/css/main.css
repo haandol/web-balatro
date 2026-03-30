@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-pixel: 'Press Start 2P', monospace;
+
+  --color-felt: #1a3a24;
+  --color-felt-light: #234a30;
+  --color-felt-dark: #0f2618;
+  --color-table: #2d5a3a;
+  --color-gold: #ffd700;
+  --color-gold-dark: #c5a200;
+}

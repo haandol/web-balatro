@@ -4,7 +4,6 @@ const {
   hand,
   drawPileSize,
   discardPileSize,
-  totalCards,
   handsRemaining,
   discardsRemaining,
   roundScore,
@@ -16,8 +15,13 @@ const {
 const selectedCardIds = ref<Set<string>>(new Set())
 
 const selectionCount = computed(() => selectedCardIds.value.size)
-const canPlay = computed(() => selectionCount.value >= 1 && selectionCount.value <= 5 && handsRemaining.value > 0 && gamePhase.value === 'playing')
-const canDiscard = computed(() => selectionCount.value >= 1 && selectionCount.value <= 5 && discardsRemaining.value > 0 && gamePhase.value === 'playing')
+const canPlay = computed(
+  () => selectionCount.value >= 1 && selectionCount.value <= 5 && handsRemaining.value > 0 && gamePhase.value === 'playing'
+)
+const canDiscard = computed(
+  () => selectionCount.value >= 1 && selectionCount.value <= 5 && discardsRemaining.value > 0 && gamePhase.value === 'playing'
+)
+const scorePercent = computed(() => Math.min((roundScore.value / targetScore.value) * 100, 100))
 
 function toggleCard(cardId: string) {
   if (gamePhase.value !== 'playing') return
@@ -51,145 +55,180 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-[#1a3a24] text-gray-100">
-    <div class="max-w-lg mx-auto px-2 py-4 md:max-w-4xl md:px-4">
-      <!-- Header -->
-      <div class="text-center mb-4">
-        <h1 class="text-xl md:text-2xl font-bold text-yellow-400 font-['Press_Start_2P']">Web Balatro</h1>
-      </div>
+  <main class="min-h-screen bg-felt-dark">
+    <!-- Felt texture background -->
+    <div class="min-h-screen bg-[radial-gradient(ellipse_at_center,var(--color-felt-light)_0%,var(--color-felt)_50%,var(--color-felt-dark)_100%)]">
+      <div class="max-w-lg mx-auto px-3 py-4 md:max-w-3xl md:px-6 md:py-6 flex flex-col min-h-screen">
 
-      <!-- Score & Round Info -->
-      <div class="bg-[#234a30] rounded-lg px-4 py-3 mb-4">
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-sm text-gray-400">Score</div>
-          <div class="text-sm text-gray-400">Target</div>
-        </div>
-        <div class="flex items-center justify-between">
-          <span
-            class="text-2xl font-bold"
-            :class="roundScore >= targetScore ? 'text-green-400' : 'text-yellow-400'"
-          >{{ roundScore }}</span>
-          <span class="text-lg text-gray-300">/ {{ targetScore }}</span>
-        </div>
-        <!-- Progress bar -->
-        <div class="mt-2 h-2 bg-[#1a3a24] rounded-full overflow-hidden">
-          <div
-            class="h-full bg-yellow-500 rounded-full transition-all duration-300"
-            :style="{ width: `${Math.min((roundScore / targetScore) * 100, 100)}%` }"
-          />
-        </div>
-      </div>
+        <!-- Top Bar: Title + Score -->
+        <header class="flex items-center justify-between mb-4">
+          <h1 class="font-pixel text-sm md:text-base text-gold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+            BALATRO
+          </h1>
+          <div class="flex items-center gap-2 text-xs font-pixel">
+            <span class="text-gray-400">Ante 1</span>
+            <span class="text-gray-500">|</span>
+            <span class="text-gray-400">Small Blind</span>
+          </div>
+        </header>
 
-      <!-- Hands / Discards / Deck Info -->
-      <div class="flex items-center justify-center gap-4 mb-4 text-sm">
-        <div class="flex flex-col items-center">
-          <span class="text-gray-400">Hands</span>
-          <span
-            class="text-lg font-bold"
-            :class="handsRemaining > 0 ? 'text-blue-400' : 'text-red-400'"
-          >{{ handsRemaining }}</span>
-        </div>
-        <div class="flex flex-col items-center">
-          <span class="text-gray-400">Discards</span>
-          <span
-            class="text-lg font-bold"
-            :class="discardsRemaining > 0 ? 'text-orange-400' : 'text-red-400'"
-          >{{ discardsRemaining }}</span>
-        </div>
-        <div class="w-px h-8 bg-gray-600" />
-        <div class="flex flex-col items-center">
-          <span class="text-gray-400">Draw</span>
-          <span class="text-lg font-bold text-blue-400">{{ drawPileSize }}</span>
-        </div>
-        <div class="flex flex-col items-center">
-          <span class="text-gray-400">Discard</span>
-          <span class="text-lg font-bold text-red-400">{{ discardPileSize }}</span>
-        </div>
-        <div class="flex flex-col items-center">
-          <span class="text-gray-400">Total</span>
-          <span class="text-lg font-bold text-gray-200">{{ totalCards }}</span>
-        </div>
-      </div>
-
-      <!-- Last Hand Result -->
-      <div
-        v-if="lastHandResult"
-        class="text-center mb-4"
-      >
-        <span class="text-yellow-300 font-bold text-lg">{{ lastHandResult.name }}</span>
-        <span class="text-gray-300 ml-2">+{{ lastHandResult.score }}</span>
-      </div>
-
-      <!-- Game Over / Won overlay -->
-      <div
-        v-if="gamePhase !== 'playing'"
-        class="bg-black/70 rounded-xl p-6 mb-4 text-center"
-      >
-        <div
-          v-if="gamePhase === 'won'"
-          class="text-green-400 text-2xl font-bold mb-2"
-        >
-          Blind Clear!
-        </div>
-        <div
-          v-else
-          class="text-red-400 text-2xl font-bold mb-2"
-        >
-          Game Over
-        </div>
-        <div class="text-gray-300 mb-4">
-          Score: {{ roundScore }} / {{ targetScore }}
-        </div>
-        <button
-          class="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold px-6 py-3 rounded-lg transition-colors duration-200 active:scale-95"
-          @click="startNewRun"
-        >
-          New Run
-        </button>
-      </div>
-
-      <!-- Hand Area -->
-      <div class="bg-[#2d5a3a] rounded-xl p-4 mb-4 min-h-[120px] md:min-h-[160px]">
-        <div
-          class="flex items-end justify-center -space-x-2 md:-space-x-1"
-          role="list"
-          aria-label="Player hand"
-        >
-          <div
-            v-for="card in hand"
-            :key="card.id"
-            role="listitem"
-          >
-            <CardPlayingCard
-              :card="card"
-              :selected="selectedCardIds.has(card.id)"
-              @click="toggleCard(card.id)"
+        <!-- Score Panel -->
+        <div class="bg-black/40 backdrop-blur-sm rounded-xl border border-white/10 px-4 py-3 mb-4">
+          <div class="flex items-end justify-between mb-2">
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Round Score</div>
+              <div
+                class="text-3xl md:text-4xl font-bold tabular-nums transition-colors duration-300"
+                :class="roundScore >= targetScore ? 'text-green-400' : 'text-white'"
+              >
+                {{ roundScore.toLocaleString() }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-0.5">Target</div>
+              <div class="text-xl md:text-2xl font-bold text-red-400 tabular-nums">
+                {{ targetScore.toLocaleString() }}
+              </div>
+            </div>
+          </div>
+          <!-- Score bar -->
+          <div class="h-2 bg-black/50 rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-500 ease-out"
+              :class="roundScore >= targetScore ? 'bg-green-500' : 'bg-gradient-to-r from-blue-500 to-blue-400'"
+              :style="{ width: `${scorePercent}%` }"
             />
           </div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div
-        v-if="gamePhase === 'playing'"
-        class="flex items-center justify-center gap-3"
-      >
-        <button
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200"
-          :class="canPlay ? 'hover:bg-blue-500 active:scale-95' : 'opacity-50 cursor-not-allowed'"
-          :disabled="!canPlay"
-          @click="playSelected"
+        <!-- Stats Row -->
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <!-- Hands -->
+          <div class="flex items-center gap-1.5 bg-blue-900/40 border border-blue-500/30 rounded-lg px-3 py-1.5">
+            <div class="w-2 h-2 rounded-full bg-blue-400" />
+            <span class="text-xs text-blue-300">Hands</span>
+            <span class="text-sm font-bold text-blue-200 tabular-nums">{{ handsRemaining }}</span>
+          </div>
+          <!-- Discards -->
+          <div class="flex items-center gap-1.5 bg-red-900/40 border border-red-500/30 rounded-lg px-3 py-1.5">
+            <div class="w-2 h-2 rounded-full bg-red-400" />
+            <span class="text-xs text-red-300">Discards</span>
+            <span class="text-sm font-bold text-red-200 tabular-nums">{{ discardsRemaining }}</span>
+          </div>
+          <!-- Deck -->
+          <div class="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+            <span class="text-xs text-gray-400">Deck</span>
+            <span class="text-sm font-bold text-gray-200 tabular-nums">{{ drawPileSize }}/{{ drawPileSize + discardPileSize }}</span>
+          </div>
+        </div>
+
+        <!-- Last Hand Result -->
+        <div
+          v-if="lastHandResult && gamePhase === 'playing'"
+          class="text-center mb-3"
         >
-          Play Hand ({{ selectionCount }})
-        </button>
-        <button
-          class="bg-transparent text-gray-200 px-6 py-3 rounded-lg font-semibold border border-gray-500 transition-colors duration-200"
-          :class="canDiscard ? 'hover:border-gray-300' : 'opacity-50 cursor-not-allowed'"
-          :disabled="!canDiscard"
-          @click="discardSelected"
+          <div class="inline-flex items-center gap-2 bg-black/40 border border-gold/30 rounded-lg px-4 py-2">
+            <span class="text-gold font-bold text-sm md:text-base">{{ lastHandResult.name }}</span>
+            <span class="text-white/60">—</span>
+            <span class="text-white font-bold text-sm md:text-base">+{{ lastHandResult.score.toLocaleString() }}</span>
+          </div>
+        </div>
+
+        <!-- Game Over / Won overlay -->
+        <div
+          v-if="gamePhase !== 'playing'"
+          class="flex-1 flex items-center justify-center"
         >
-          Discard ({{ selectionCount }})
-        </button>
+          <div class="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 px-8 py-8 text-center max-w-sm w-full">
+            <div
+              v-if="gamePhase === 'won'"
+              class="mb-4"
+            >
+              <div class="text-gold font-pixel text-lg mb-2">BLIND CLEAR!</div>
+              <div class="text-5xl mb-2">&#127183;</div>
+            </div>
+            <div
+              v-else
+              class="mb-4"
+            >
+              <div class="text-red-400 font-pixel text-lg mb-2">GAME OVER</div>
+              <div class="text-5xl mb-2">&#128128;</div>
+            </div>
+            <div class="text-gray-400 text-sm mb-1">Final Score</div>
+            <div class="text-white text-2xl font-bold mb-1">{{ roundScore.toLocaleString() }}</div>
+            <div class="text-gray-500 text-sm mb-6">Target: {{ targetScore.toLocaleString() }}</div>
+            <button
+              class="bg-gold hover:bg-gold-dark text-black font-bold px-8 py-3 rounded-lg transition-colors duration-200 active:scale-95 font-pixel text-xs"
+              @click="startNewRun"
+            >
+              NEW RUN
+            </button>
+          </div>
+        </div>
+
+        <!-- Hand Area (only when playing) -->
+        <template v-if="gamePhase === 'playing'">
+          <!-- Spacer to push hand to bottom -->
+          <div class="flex-1" />
+
+          <!-- Hand -->
+          <div class="mb-4">
+            <div
+              class="flex items-end justify-center"
+              :class="hand.length > 6 ? '-space-x-3 md:-space-x-1' : '-space-x-1 md:space-x-1'"
+              role="list"
+              aria-label="Player hand"
+            >
+              <div
+                v-for="card in hand"
+                :key="card.id"
+                role="listitem"
+              >
+                <CardPlayingCard
+                  :card="card"
+                  :selected="selectedCardIds.has(card.id)"
+                  @click="toggleCard(card.id)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-center gap-3 pb-4">
+            <button
+              class="relative px-6 py-3 rounded-lg font-bold text-sm transition-all duration-200 overflow-hidden"
+              :class="
+                canPlay
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/50 active:scale-95'
+                  : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+              "
+              :disabled="!canPlay"
+              @click="playSelected"
+            >
+              Play Hand
+              <span
+                v-if="selectionCount > 0"
+                class="ml-1 opacity-70"
+              >({{ selectionCount }})</span>
+            </button>
+            <button
+              class="relative px-6 py-3 rounded-lg font-bold text-sm transition-all duration-200 overflow-hidden"
+              :class="
+                canDiscard
+                  ? 'bg-red-700/80 hover:bg-red-600 text-white shadow-lg shadow-red-900/50 active:scale-95'
+                  : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+              "
+              :disabled="!canDiscard"
+              @click="discardSelected"
+            >
+              Discard
+              <span
+                v-if="selectionCount > 0"
+                class="ml-1 opacity-70"
+              >({{ selectionCount }})</span>
+            </button>
+          </div>
+        </template>
       </div>
     </div>
   </main>
