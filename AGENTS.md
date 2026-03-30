@@ -118,7 +118,7 @@ pnpm generate     # Static site generation
 ### Directory Structure
 
 ```
-components/       # Vue components (PascalCase, e.g. GameCard.vue)
+components/       # Vue components (PascalCase, e.g. card/Playing.vue → <CardPlaying>)
 composables/      # Composables (use[Name], e.g. useBalatroGame.ts)
 stores/           # Pinia stores (camelCase, e.g. game.ts)
 pages/            # Page components
@@ -131,9 +131,24 @@ data/             # Static game data (antes, suits, ranks)
 ### Naming Standards
 
 - **Composables:** `use[Name]` (e.g. `useBalatroGame`)
-- **Components:** PascalCase (e.g. `GameCard.vue`)
+- **Components:** PascalCase (e.g. `Playing.vue`)
 - **Other files:** camelCase (e.g. `gameData.ts`)
 - **Functions:** Prefer named exports
+
+### Component Auto-Import Convention (Nuxt)
+
+Nuxt는 `components/` 하위의 폴더명 + 파일명을 결합하여 컴포넌트를 자동 등록한다. **파일명에 폴더명을 중복하지 않는다.**
+
+```
+✅ components/card/Playing.vue    → <CardPlaying>
+✅ components/joker/Card.vue      → <JokerCard>
+✅ components/joker/Slots.vue     → <JokerSlots>
+
+❌ components/joker/JokerCard.vue → <JokerCard> (동작하지만 폴더명 중복)
+❌ components/card/CardItem.vue   → <CardItem>  (Card 폴더가 이미 prefix)
+```
+
+**규칙:** `components/{폴더}/{파일}.vue` → `<{폴더}{파일}>`으로 사용. 폴더명이 이미 prefix 역할을 하므로 파일명에 반복하지 않는다.
 
 ### UI Development
 

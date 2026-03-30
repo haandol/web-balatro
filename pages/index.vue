@@ -243,7 +243,7 @@ onMounted(() => {
                 :key="card.id"
                 role="listitem"
               >
-                <CardPlayingCard
+                <CardPlaying
                   :card="card"
                   :selected="selectedCardIds.has(card.id)"
                   @click="toggleCard(card.id)"
