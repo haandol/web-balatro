@@ -18,7 +18,7 @@
   <tech-stack>
     - **Framework**: Nuxt 4 (SPA, CSR only — no SSR/server interactions)
     - **Language**: TypeScript
-    - **Package Manager**: Yarn 1.x
+    - **Package Manager**: pnpm
     - **Styling**: TailwindCSS (utility-first)
     - **State Management**: Pinia (Composition API setup store)
     - **Icons**: PrimeIcons
