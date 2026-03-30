@@ -1,6 +1,6 @@
 # ADR-012: 런 관리 (F12)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F12 — 런 관리 (`specs/web-balatro.alps.md` Section 7.12)
 
@@ -44,7 +44,7 @@ interface RunStats {
 | 새 런 시작 시 모든 상태가 초기화된다 | ✅ 완료 (initRun) |
 | 핸드 소진 + 목표 미달 시 게임 오버가 발생한다 | ✅ 완료 |
 | 앤티 8 클리어 시 승리 화면이 표시된다 | ✅ 완료 |
-| 런 결과 화면에 통계가 정확히 표시된다 | ❌ 미구현 |
+| 런 결과 화면에 통계가 정확히 표시된다 | ✅ 완료 (blindsCleared, bestHand, totalMoneyEarned, jokers) |
 | 런 결과 화면에서 새 런을 시작할 수 있다 | ✅ 완료 |
 
 ## Consequences

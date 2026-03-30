@@ -26,6 +26,7 @@ const {
   activeBossModifier,
   lastSkipTag,
   freeRerolls,
+  runStats,
 } = storeToRefs(gameStore)
 
 const selectedCardIds = ref<Set<string>>(new Set())
@@ -462,7 +463,29 @@ onMounted(() => {
               <div class="text-5xl mb-4">&#127942;</div>
               <div class="text-gray-400 text-sm mb-1">Final Score</div>
               <div class="text-white text-2xl font-bold mb-1">{{ roundScore.toLocaleString() }}</div>
-              <div class="text-gray-500 text-sm mb-6">Ante {{ currentAnte }} — {{ blindLabel }}</div>
+              <div class="text-gray-500 text-sm mb-4">Ante {{ currentAnte }} — {{ blindLabel }}</div>
+
+              <!-- Run Stats -->
+              <div class="bg-white/5 border border-white/10 rounded-xl px-5 py-3 mb-6 text-sm space-y-1.5">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Blinds Cleared</span>
+                  <span class="text-white tabular-nums">{{ runStats.blindsCleared }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Best Hand</span>
+                  <span class="text-blue-300 tabular-nums"
+                    >{{ runStats.bestHandName }} ({{ runStats.bestHand.toLocaleString() }})</span
+                  >
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Total Earned</span>
+                  <span class="text-gold tabular-nums">${{ runStats.totalMoneyEarned }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Jokers</span>
+                  <span class="text-white">{{ jokers.length }}</span>
+                </div>
+              </div>
               <button
                 class="bg-gold hover:bg-gold-dark text-black font-bold px-8 py-3 rounded-lg transition-colors duration-200 active:scale-95 font-pixel text-xs"
                 @click="startNewRun"
@@ -483,7 +506,32 @@ onMounted(() => {
               <div class="text-5xl mb-4">&#128128;</div>
               <div class="text-gray-400 text-sm mb-1">Final Score</div>
               <div class="text-white text-2xl font-bold mb-1">{{ roundScore.toLocaleString() }}</div>
-              <div class="text-gray-500 text-sm mb-6">Target: {{ targetScore.toLocaleString() }}</div>
+              <div class="text-gray-500 text-sm mb-4">Target: {{ targetScore.toLocaleString() }}</div>
+
+              <!-- Run Stats -->
+              <div class="bg-white/5 border border-white/10 rounded-xl px-5 py-3 mb-6 text-sm space-y-1.5">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Reached</span>
+                  <span class="text-white">Ante {{ currentAnte }} — {{ blindLabel }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Blinds Cleared</span>
+                  <span class="text-white tabular-nums">{{ runStats.blindsCleared }}</span>
+                </div>
+                <div
+                  v-if="runStats.bestHand > 0"
+                  class="flex justify-between"
+                >
+                  <span class="text-gray-400">Best Hand</span>
+                  <span class="text-blue-300 tabular-nums"
+                    >{{ runStats.bestHandName }} ({{ runStats.bestHand.toLocaleString() }})</span
+                  >
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Total Earned</span>
+                  <span class="text-gold tabular-nums">${{ runStats.totalMoneyEarned }}</span>
+                </div>
+              </div>
               <button
                 class="bg-gold hover:bg-gold-dark text-black font-bold px-8 py-3 rounded-lg transition-colors duration-200 active:scale-95 font-pixel text-xs"
                 @click="startNewRun"

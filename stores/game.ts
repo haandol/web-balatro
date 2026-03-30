@@ -14,6 +14,17 @@ import { TAGS, type Tag } from '~/data/tags'
 
 export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
+export interface RunStats {
+  blindsCleared: number
+  bestHand: number
+  bestHandName: string
+  totalMoneyEarned: number
+}
+
+function emptyStats(): RunStats {
+  return { blindsCleared: 0, bestHand: 0, bestHandName: '', totalMoneyEarned: 0 }
+}
+
 export const useGameStore = defineStore('game', () => {
   const DEFAULT_HAND_SIZE = 8
   const DEFAULT_HANDS = 4
@@ -47,6 +58,9 @@ export const useGameStore = defineStore('game', () => {
   // --- F10: Economy ---
   const money = ref(4)
   const lastEarnings = ref<RoundEarnings | null>(null)
+
+  // --- F12: Run Stats ---
+  const runStats = ref<RunStats>(emptyStats())
 
   // --- F11: Blind Skip ---
   const lastSkipTag = ref<Tag | null>(null)
@@ -83,6 +97,7 @@ export const useGameStore = defineStore('game', () => {
     currentBoss.value = null
     usedBossIds.value = []
     selectBossForAnte()
+    runStats.value = emptyStats()
     lastSkipTag.value = null
     freeRerolls.value = 0
     shopJokers.value = []
@@ -312,6 +327,15 @@ export const useGameStore = defineStore('game', () => {
     roundScore.value += breakdown.finalScore
     handsRemaining.value -= 1
 
+    // F12: 최고 핸드 갱신
+    if (breakdown.finalScore > runStats.value.bestHand) {
+      runStats.value = {
+        ...runStats.value,
+        bestHand: breakdown.finalScore,
+        bestHandName: result.name,
+      }
+    }
+
     discardFromHand(cardIds)
 
     const deficit = DEFAULT_HAND_SIZE - hand.value.length
@@ -326,6 +350,13 @@ export const useGameStore = defineStore('game', () => {
       roundReward.value = earnings.total
       lastEarnings.value = earnings
       money.value += earnings.total
+
+      // F12: 블라인드 클리어 통계
+      runStats.value = {
+        ...runStats.value,
+        blindsCleared: runStats.value.blindsCleared + 1,
+        totalMoneyEarned: runStats.value.totalMoneyEarned + earnings.total,
+      }
 
       // 앤티 8 보스 클리어 시 바로 승리
       if (currentAnte.value >= MAX_ANTE && currentBlind.value === 'boss') {
@@ -371,6 +402,7 @@ export const useGameStore = defineStore('game', () => {
     currentBoss,
     lastSkipTag,
     freeRerolls,
+    runStats,
     // Getters
     drawPileSize,
     handSize,
