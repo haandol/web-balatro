@@ -18,6 +18,7 @@
 | [010](./010-boss-blind.md) | 보스 블라인드 (F8) | Accepted | 2026-03-31 |
 | [011](./011-blind-skip.md) | 블라인드 스킵 (F11) | Accepted | 2026-03-31 |
 | [012](./012-run-management.md) | 런 관리 (F12) | Accepted | 2026-03-31 |
+| [013](./013-game-state-persistence.md) | 게임 상태 저장 (F13) | Accepted | 2026-03-31 |
 
 ## 작성 규칙
 

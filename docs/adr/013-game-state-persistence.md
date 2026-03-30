@@ -1,6 +1,6 @@
 # ADR-013: 게임 상태 저장 (F13)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F13 — 게임 상태 저장 (`specs/web-balatro.alps.md` Section 7.13)
 
@@ -48,11 +48,11 @@ store action 내에서 자동 호출:
 
 | 항목 | 상태 |
 |---|---|
-| 게임 진행 중 상태가 자동으로 저장된다 | ❌ 미구현 |
-| 브라우저 재방문 시 "Continue" 버튼이 활성화된다 | ❌ 미구현 |
-| 이어하기 시 마지막 저장 시점의 상태가 정확히 복원된다 | ❌ 미구현 |
-| 새 런 시작 시 기존 저장 데이터가 초기화된다 | ❌ 미구현 |
-| 저장 데이터가 손상된 경우 새 런으로 시작된다 | ❌ 미구현 |
+| 게임 진행 중 상태가 자동으로 저장된다 | ✅ 완료 (startBlind, round_end, openShop, leaveShop) |
+| 브라우저 재방문 시 "Continue" 버튼이 활성화된다 | ✅ 완료 (menu phase) |
+| 이어하기 시 마지막 저장 시점의 상태가 정확히 복원된다 | ✅ 완료 (continueRun) |
+| 새 런 시작 시 기존 저장 데이터가 초기화된다 | ✅ 완료 (clearSave in initRun) |
+| 저장 데이터가 손상된 경우 새 런으로 시작된다 | ✅ 완료 (try/catch + clearSave) |
 
 ## Consequences
 

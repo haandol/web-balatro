@@ -29,6 +29,7 @@ const {
   runStats,
 } = storeToRefs(gameStore)
 
+const hasSavedGame = ref(false)
 const selectedCardIds = ref<Set<string>>(new Set())
 
 const selectionCount = computed(() => selectedCardIds.value.size)
@@ -96,6 +97,14 @@ function handleOpenShop() {
 function startNewRun() {
   gameStore.initRun()
   selectedCardIds.value = new Set()
+  hasSavedGame.value = false
+}
+
+function handleContinue() {
+  if (gameStore.continueRun()) {
+    selectedCardIds.value = new Set()
+    hasSavedGame.value = false
+  }
 }
 
 function getJokerPrice(joker: { sellPrice: number }) {
@@ -107,7 +116,10 @@ function isCardDebuffed(card: { suit: string; rank: string }) {
 }
 
 onMounted(() => {
-  gameStore.initRun()
+  hasSavedGame.value = gameStore.checkForSave()
+  if (!hasSavedGame.value) {
+    gameStore.initRun()
+  }
 })
 </script>
 
@@ -119,7 +131,10 @@ onMounted(() => {
     >
       <div class="max-w-lg mx-auto px-3 py-4 md:max-w-3xl md:px-6 md:py-6 flex flex-col min-h-screen">
         <!-- Top Bar: Title + Money + Ante/Blind -->
-        <header class="flex items-center justify-between mb-4">
+        <header
+          v-if="gamePhase !== 'menu'"
+          class="flex items-center justify-between mb-4"
+        >
           <h1 class="font-pixel text-sm md:text-base text-gold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">BALATRO</h1>
           <div class="flex items-center gap-3 text-xs font-pixel">
             <span class="text-gold font-bold">${{ money }}</span>
@@ -131,12 +146,42 @@ onMounted(() => {
         </header>
 
         <!-- Joker Slots -->
-        <div class="mb-4">
+        <div
+          v-if="gamePhase !== 'menu'"
+          class="mb-4"
+        >
           <JokerSlots />
         </div>
 
+        <!-- ===== MENU PHASE ===== -->
+        <template v-if="gamePhase === 'menu'">
+          <div class="flex-1 flex items-center justify-center">
+            <div class="text-center">
+              <h1 class="font-pixel text-3xl md:text-5xl text-gold drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] mb-2">
+                BALATRO
+              </h1>
+              <div class="text-gray-500 text-sm mb-10">Web Edition</div>
+              <div class="flex flex-col items-center gap-3">
+                <button
+                  v-if="hasSavedGame"
+                  class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-12 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-sm shadow-lg shadow-blue-900/50 w-48"
+                  @click="handleContinue"
+                >
+                  CONTINUE
+                </button>
+                <button
+                  class="bg-gold hover:bg-gold-dark text-black font-bold px-12 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-sm w-48"
+                  @click="startNewRun"
+                >
+                  NEW RUN
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+
         <!-- ===== BLIND SELECT PHASE ===== -->
-        <template v-if="gamePhase === 'blind_select'">
+        <template v-else-if="gamePhase === 'blind_select'">
           <div class="flex-1 flex items-center justify-center">
             <div
               class="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 px-8 py-8 text-center max-w-sm w-full"
@@ -241,6 +286,15 @@ onMounted(() => {
                 >{{ drawPileSize }}/{{ drawPileSize + discardPileSize }}</span
               >
             </div>
+          </div>
+
+          <!-- Boss modifier banner -->
+          <div
+            v-if="currentBlind === 'boss' && currentBoss"
+            class="flex items-center justify-center gap-2 mb-3 bg-red-900/30 border border-red-500/30 rounded-lg px-3 py-1.5"
+          >
+            <span class="text-red-400 font-bold text-xs">{{ currentBoss.name }}</span>
+            <span class="text-red-300/60 text-xs">{{ currentBoss.description }}</span>
           </div>
 
           <!-- Hand Preview / Last Hand Result -->

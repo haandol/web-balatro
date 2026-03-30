@@ -11,8 +11,9 @@ import type { JokerRarity } from '~/types/joker'
 import { calculateRoundEarnings, type RoundEarnings } from '~/utils/economy'
 import { BOSS_BLINDS, type BossBlind } from '~/data/bossBlinds'
 import { TAGS, type Tag } from '~/data/tags'
+import { saveGame, loadGame, clearSave } from '~/utils/saveGame'
 
-export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
+export type GamePhase = 'menu' | 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
 export interface RunStats {
   blindsCleared: number
@@ -38,7 +39,7 @@ export const useGameStore = defineStore('game', () => {
   // --- F7: Ante/Blind State ---
   const currentAnte = ref(1)
   const currentBlind = ref<BlindType>('small')
-  const gamePhase = ref<GamePhase>('blind_select')
+  const gamePhase = ref<GamePhase>('menu')
 
   // --- F8: Boss Blind ---
   const currentBoss = ref<BossBlind | null>(null)
@@ -108,6 +109,8 @@ export const useGameStore = defineStore('game', () => {
     drawPile.value = deck
     hand.value = []
     discardPile.value = []
+
+    clearSave()
   }
 
   /** 앤티에 대해 보스를 미리 선택한다 (블라인드 선택 화면에서 미리보기용). */
@@ -152,6 +155,7 @@ export const useGameStore = defineStore('game', () => {
     drawPile.value = remaining
 
     gamePhase.value = 'playing'
+    autoSave()
   }
 
   /** 스몰/빅 블라인드를 스킵한다. 태그 보상을 받고 다음 블라인드로 이동. */
@@ -232,6 +236,7 @@ export const useGameStore = defineStore('game', () => {
   function openShop() {
     generateShop()
     gamePhase.value = 'shop'
+    autoSave()
   }
 
   function buyJoker(index: number): boolean {
@@ -259,6 +264,7 @@ export const useGameStore = defineStore('game', () => {
   function leaveShop() {
     shopJokers.value = []
     advanceBlind()
+    autoSave()
   }
 
   // --- F6: Joker Actions ---
@@ -361,11 +367,14 @@ export const useGameStore = defineStore('game', () => {
       // 앤티 8 보스 클리어 시 바로 승리
       if (currentAnte.value >= MAX_ANTE && currentBlind.value === 'boss') {
         gamePhase.value = 'won'
+        clearSave()
       } else {
         gamePhase.value = 'round_end'
+        autoSave()
       }
     } else if (handsRemaining.value <= 0) {
       gamePhase.value = 'lost'
+      clearSave()
     }
   }
 
@@ -378,6 +387,74 @@ export const useGameStore = defineStore('game', () => {
     discardFromHand(cardIds)
     discardsRemaining.value -= 1
     drawCards(count)
+  }
+
+  // --- F13: Save/Load ---
+
+  function getSerializableState(): Record<string, unknown> {
+    return {
+      drawPile: drawPile.value,
+      hand: hand.value,
+      discardPile: discardPile.value,
+      currentAnte: currentAnte.value,
+      currentBlind: currentBlind.value,
+      gamePhase: gamePhase.value,
+      currentBoss: currentBoss.value,
+      usedBossIds: usedBossIds.value,
+      handsRemaining: handsRemaining.value,
+      discardsRemaining: discardsRemaining.value,
+      roundScore: roundScore.value,
+      targetScore: targetScore.value,
+      roundReward: roundReward.value,
+      jokers: jokers.value,
+      money: money.value,
+      freeRerolls: freeRerolls.value,
+      runStats: runStats.value,
+      shopJokers: shopJokers.value,
+      rerollCost: rerollCost.value,
+    }
+  }
+
+  function autoSave() {
+    saveGame(getSerializableState())
+  }
+
+  function continueRun(): boolean {
+    const state = loadGame()
+    if (!state) return false
+
+    try {
+      drawPile.value = (state.drawPile as PlayingCard[]) ?? []
+      hand.value = (state.hand as PlayingCard[]) ?? []
+      discardPile.value = (state.discardPile as PlayingCard[]) ?? []
+      currentAnte.value = (state.currentAnte as number) ?? 1
+      currentBlind.value = (state.currentBlind as BlindType) ?? 'small'
+      gamePhase.value = (state.gamePhase as GamePhase) ?? 'blind_select'
+      currentBoss.value = (state.currentBoss as BossBlind | null) ?? null
+      usedBossIds.value = (state.usedBossIds as string[]) ?? []
+      handsRemaining.value = (state.handsRemaining as number) ?? DEFAULT_HANDS
+      discardsRemaining.value = (state.discardsRemaining as number) ?? DEFAULT_DISCARDS
+      roundScore.value = (state.roundScore as number) ?? 0
+      targetScore.value = (state.targetScore as number) ?? 0
+      roundReward.value = (state.roundReward as number) ?? 0
+      jokers.value = (state.jokers as Joker[]) ?? []
+      money.value = (state.money as number) ?? 4
+      freeRerolls.value = (state.freeRerolls as number) ?? 0
+      runStats.value = (state.runStats as RunStats) ?? emptyStats()
+      shopJokers.value = (state.shopJokers as Joker[]) ?? []
+      rerollCost.value = (state.rerollCost as number) ?? BASE_REROLL_COST
+      lastHandResult.value = null
+      lastEarnings.value = null
+      lastSkipTag.value = null
+      return true
+    } catch {
+      clearSave()
+      return false
+    }
+  }
+
+  function checkForSave(): boolean {
+    return loadGame() !== null
   }
 
   return {
@@ -428,5 +505,7 @@ export const useGameStore = defineStore('game', () => {
     discardFromHand,
     playHand,
     discardCards,
+    continueRun,
+    checkForSave,
   }
 })
