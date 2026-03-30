@@ -1,0 +1,8 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+For project structure, tech stack, architecture, code style, and dev commands, refer to the AGENTS.md file.
+
+- [AGENTS.md](./AGENTS.md) — Project overview, tech stack, architecture, conventions
+- [SPEC.md](./SPEC.md) — Full Balatro game rules and mechanics specification
