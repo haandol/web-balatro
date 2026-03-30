@@ -7,8 +7,10 @@ import { createDeck, shuffle, draw } from '~/utils/deck'
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { type BlindType, BLIND_ORDER, MAX_ANTE, getTargetScore, BLIND_REWARDS } from '~/data/blinds'
 import { JOKER_DEFINITIONS, MAX_JOKER_SLOTS } from '~/data/jokers'
+import type { JokerRarity } from '~/types/joker'
+import { calculateRoundEarnings, type RoundEarnings } from '~/utils/economy'
 
-export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'won' | 'lost'
+export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
 export const useGameStore = defineStore('game', () => {
   const DEFAULT_HAND_SIZE = 8
@@ -36,6 +38,15 @@ export const useGameStore = defineStore('game', () => {
   // --- F5/F6: Jokers ---
   const jokers = ref<Joker[]>([])
 
+  // --- F10: Economy ---
+  const money = ref(4)
+  const lastEarnings = ref<RoundEarnings | null>(null)
+
+  // --- F9: Shop ---
+  const shopJokers = ref<Joker[]>([])
+  const rerollCost = ref(5)
+  const BASE_REROLL_COST = 5
+
   // --- Getters ---
   const drawPileSize = computed(() => drawPile.value.length)
   const handSize = computed(() => hand.value.length)
@@ -53,13 +64,11 @@ export const useGameStore = defineStore('game', () => {
     targetScore.value = 0
     lastHandResult.value = null
     roundReward.value = 0
-
-    // 테스트용 랜덤 조커 2개 부여 (상점 미구현)
-    const shuffledDefs = shuffle([...JOKER_DEFINITIONS])
-    jokers.value = shuffledDefs.slice(0, 2).map((def, i) => ({
-      ...def,
-      id: `joker-${Date.now()}-${i}`,
-    }))
+    money.value = 4
+    lastEarnings.value = null
+    jokers.value = []
+    shopJokers.value = []
+    rerollCost.value = BASE_REROLL_COST
 
     // 덱 초기화
     const deck = shuffle(createDeck())
@@ -109,6 +118,70 @@ export const useGameStore = defineStore('game', () => {
       // 앤티 8 보스 클리어 — 승리
       gamePhase.value = 'won'
     }
+  }
+
+  // --- F10: Economy Actions ---
+
+  function spendMoney(amount: number): boolean {
+    if (money.value < amount) return false
+    money.value -= amount
+    return true
+  }
+
+  function sellJoker(jokerId: string) {
+    const joker = jokers.value.find((j) => j.id === jokerId)
+    if (!joker) return
+    money.value += joker.sellPrice
+    removeJoker(jokerId)
+  }
+
+  // --- F9: Shop Actions ---
+
+  function pickRarity(): JokerRarity {
+    const roll = Math.random()
+    if (roll < 0.05) return 'rare'
+    if (roll < 0.3) return 'uncommon'
+    return 'common'
+  }
+
+  function generateShopJoker(): Joker {
+    const rarity = pickRarity()
+    const pool = JOKER_DEFINITIONS.filter((d) => d.rarity === rarity)
+    const def = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : JOKER_DEFINITIONS[0]
+    return { ...def, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+  }
+
+  function generateShop() {
+    shopJokers.value = [generateShopJoker(), generateShopJoker()]
+    rerollCost.value = BASE_REROLL_COST
+  }
+
+  function openShop() {
+    generateShop()
+    gamePhase.value = 'shop'
+  }
+
+  function buyJoker(index: number): boolean {
+    const joker = shopJokers.value[index]
+    if (!joker) return false
+    if (jokers.value.length >= MAX_JOKER_SLOTS) return false
+    const price = joker.sellPrice * 2
+    if (!spendMoney(price)) return false
+    jokers.value = [...jokers.value, joker]
+    shopJokers.value = shopJokers.value.filter((_, i) => i !== index)
+    return true
+  }
+
+  function rerollShop(): boolean {
+    if (!spendMoney(rerollCost.value)) return false
+    shopJokers.value = [generateShopJoker(), generateShopJoker()]
+    rerollCost.value += 1
+    return true
+  }
+
+  function leaveShop() {
+    shopJokers.value = []
+    advanceBlind()
   }
 
   // --- F6: Joker Actions ---
@@ -182,7 +255,12 @@ export const useGameStore = defineStore('game', () => {
 
     // 블라인드 클리어 판정
     if (roundScore.value >= targetScore.value) {
-      roundReward.value = BLIND_REWARDS[currentBlind.value]
+      const reward = BLIND_REWARDS[currentBlind.value]
+      const earnings = calculateRoundEarnings(reward, handsRemaining.value, money.value)
+      roundReward.value = earnings.total
+      lastEarnings.value = earnings
+      money.value += earnings.total
+
       // 앤티 8 보스 클리어 시 바로 승리
       if (currentAnte.value >= MAX_ANTE && currentBlind.value === 'boss') {
         gamePhase.value = 'won'
@@ -220,6 +298,10 @@ export const useGameStore = defineStore('game', () => {
     gamePhase,
     jokers,
     roundReward,
+    money,
+    lastEarnings,
+    shopJokers,
+    rerollCost,
     // Getters
     drawPileSize,
     handSize,
@@ -232,6 +314,12 @@ export const useGameStore = defineStore('game', () => {
     addJoker,
     removeJoker,
     reorderJokers,
+    sellJoker,
+    spendMoney,
+    openShop,
+    buyJoker,
+    rerollShop,
+    leaveShop,
     drawCards,
     reshuffleDeck,
     discardFromHand,

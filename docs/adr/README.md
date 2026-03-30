@@ -13,8 +13,8 @@
 | [005](./005-score-calculation-engine.md) | 점수 계산 엔진 (F5) | Accepted | 2026-03-31 |
 | [006](./006-blind-progression.md) | 블라인드 진행 (F7) | Accepted | 2026-03-31 |
 | [007](./007-joker-system.md) | 조커 시스템 (F6) | Accepted | 2026-03-31 |
-| [008](./008-economy-system.md) | 경제 시스템 (F10) | Proposed | 2026-03-31 |
-| [009](./009-shop-system.md) | 상점 시스템 (F9) | Proposed | 2026-03-31 |
+| [008](./008-economy-system.md) | 경제 시스템 (F10) | Accepted | 2026-03-31 |
+| [009](./009-shop-system.md) | 상점 시스템 (F9) | Accepted | 2026-03-31 |
 
 ## 작성 규칙
 

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { BLIND_LABELS, getTargetScore } from '~/data/blinds'
+import { MAX_JOKER_SLOTS } from '~/data/jokers'
 
 const gameStore = useGameStore()
 const {
@@ -15,7 +16,11 @@ const {
   gamePhase,
   currentAnte,
   currentBlind,
-  roundReward,
+  money,
+  lastEarnings,
+  shopJokers,
+  rerollCost,
+  jokers,
 } = storeToRefs(gameStore)
 
 const selectedCardIds = ref<Set<string>>(new Set())
@@ -75,14 +80,17 @@ function handleStartBlind() {
   selectedCardIds.value = new Set()
 }
 
-function handleAdvanceBlind() {
-  gameStore.advanceBlind()
-  selectedCardIds.value = new Set()
+function handleOpenShop() {
+  gameStore.openShop()
 }
 
 function startNewRun() {
   gameStore.initRun()
   selectedCardIds.value = new Set()
+}
+
+function getJokerPrice(joker: { sellPrice: number }) {
+  return joker.sellPrice * 2
 }
 
 onMounted(() => {
@@ -97,12 +105,14 @@ onMounted(() => {
       class="min-h-screen bg-[radial-gradient(ellipse_at_center,var(--color-felt-light)_0%,var(--color-felt)_50%,var(--color-felt-dark)_100%)]"
     >
       <div class="max-w-lg mx-auto px-3 py-4 md:max-w-3xl md:px-6 md:py-6 flex flex-col min-h-screen">
-        <!-- Top Bar: Title + Ante/Blind -->
+        <!-- Top Bar: Title + Money + Ante/Blind -->
         <header class="flex items-center justify-between mb-4">
           <h1 class="font-pixel text-sm md:text-base text-gold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">BALATRO</h1>
-          <div class="flex items-center gap-2 text-xs font-pixel">
+          <div class="flex items-center gap-3 text-xs font-pixel">
+            <span class="text-gold font-bold">${{ money }}</span>
+            <span class="text-gray-600">|</span>
             <span class="text-gray-400">Ante {{ currentAnte }}</span>
-            <span class="text-gray-500">|</span>
+            <span class="text-gray-600">|</span>
             <span class="text-gray-400">{{ blindLabel }}</span>
           </div>
         </header>
@@ -293,17 +303,107 @@ onMounted(() => {
               <div class="text-gray-400 text-sm mb-1">Score</div>
               <div class="text-white text-2xl font-bold mb-4">{{ roundScore.toLocaleString() }}</div>
 
-              <div class="bg-gold/10 border border-gold/30 rounded-xl px-5 py-3 mb-6">
-                <div class="text-[10px] uppercase tracking-wider text-gold/70 mb-1">Reward</div>
-                <div class="text-2xl font-bold text-gold tabular-nums">${{ roundReward }}</div>
+              <!-- Earnings breakdown -->
+              <div
+                v-if="lastEarnings"
+                class="bg-gold/10 border border-gold/30 rounded-xl px-5 py-3 mb-6"
+              >
+                <div class="text-[10px] uppercase tracking-wider text-gold/70 mb-2">Earnings</div>
+                <div class="space-y-1 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Blind reward</span>
+                    <span class="text-gold tabular-nums">${{ lastEarnings.blindReward }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Hand bonus</span>
+                    <span class="text-gold tabular-nums">${{ lastEarnings.handBonus }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Interest</span>
+                    <span class="text-gold tabular-nums">${{ lastEarnings.interest }}</span>
+                  </div>
+                  <div class="border-t border-gold/20 pt-1 flex justify-between font-bold">
+                    <span class="text-gold">Total</span>
+                    <span class="text-gold tabular-nums">${{ lastEarnings.total }}</span>
+                  </div>
+                </div>
               </div>
 
               <button
                 class="bg-gold hover:bg-gold-dark text-black font-bold px-10 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs"
-                @click="handleAdvanceBlind"
+                @click="handleOpenShop"
               >
-                CONTINUE
+                SHOP
               </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- ===== SHOP PHASE ===== -->
+        <template v-else-if="gamePhase === 'shop'">
+          <div class="flex-1 flex items-center justify-center">
+            <div
+              class="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 px-6 py-6 text-center max-w-md w-full"
+            >
+              <div class="text-gold font-pixel text-lg mb-4">SHOP</div>
+
+              <!-- Shop Jokers -->
+              <div class="mb-6">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-3">Jokers</div>
+                <div
+                  v-if="shopJokers.length > 0"
+                  class="flex justify-center gap-4"
+                >
+                  <div
+                    v-for="(joker, index) in shopJokers"
+                    :key="joker.id"
+                    class="flex flex-col items-center gap-2"
+                  >
+                    <JokerJokerCard :joker="joker" />
+                    <div class="text-xs text-gray-400">${{ getJokerPrice(joker) }}</div>
+                    <button
+                      class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
+                      :class="
+                        money >= getJokerPrice(joker) && jokers.length < MAX_JOKER_SLOTS
+                          ? 'bg-green-600 hover:bg-green-500 text-white active:scale-95'
+                          : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                      "
+                      :disabled="money < getJokerPrice(joker) || jokers.length >= MAX_JOKER_SLOTS"
+                      @click="gameStore.buyJoker(index)"
+                    >
+                      BUY
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="text-gray-600 text-sm py-4"
+                >
+                  Sold out
+                </div>
+              </div>
+
+              <!-- Reroll & Leave -->
+              <div class="flex items-center justify-center gap-3">
+                <button
+                  class="px-5 py-2.5 rounded-lg font-bold text-sm transition-all duration-200"
+                  :class="
+                    money >= rerollCost
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
+                      : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                  "
+                  :disabled="money < rerollCost"
+                  @click="gameStore.rerollShop()"
+                >
+                  Reroll (${{ rerollCost }})
+                </button>
+                <button
+                  class="bg-gold hover:bg-gold-dark text-black font-bold px-5 py-2.5 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs"
+                  @click="gameStore.leaveShop()"
+                >
+                  NEXT ROUND
+                </button>
+              </div>
             </div>
           </div>
         </template>
