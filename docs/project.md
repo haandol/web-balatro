@@ -16,7 +16,7 @@
   </key-features>
 
   <tech-stack>
-    - **Framework**: Nuxt 3 (SPA, CSR only — no SSR/server interactions)
+    - **Framework**: Nuxt 4 (SPA, CSR only — no SSR/server interactions)
     - **Language**: TypeScript
     - **Package Manager**: Yarn 1.x
     - **Styling**: TailwindCSS (utility-first)
@@ -37,14 +37,14 @@
   </core-principles>
 </project-overview>
 
-<nuxt3-implementation>
+<nuxt4-implementation>
   - **Use Composition API**: `<script lang="ts" setup>` for all components
   - **Leverage auto-imports** for Vue/Nuxt composables and components
   - **SPA mode**: SSR disabled (`ssr: false`) for client-side rendering only
   - **No server interactions**: All game logic runs client-side
   - **Use runtime config properly**: Client-side only via `useRuntimeConfig().public`
   - **Manage state** with Pinia (use `storeToRefs` for reactivity)
-</nuxt3-implementation>
+</nuxt4-implementation>
 
 <components>
   <core-principles>
@@ -106,7 +106,7 @@
 <performance>
   - **Optimize component rendering** with proper key usage
   - **Minimize bundle size** through code splitting
-  - **Follow Vue 3 and Nuxt 3 best practices**
+  - **Follow Vue 3 and Nuxt 4 best practices**
   - **Optimize card animations** for mobile devices
   - **Use efficient card shuffling and dealing algorithms**
 </performance>

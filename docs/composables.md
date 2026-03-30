@@ -2,7 +2,7 @@
 
 <overview>
   <description>
-    Web Balatro composables are reusable logic modules leveraging Vue 3's Composition API. They orchestrate game interactions, manage UI behavior, and bridge user input to store actions. All composables are auto-imported in Nuxt 3.
+    Web Balatro composables are reusable logic modules leveraging Vue 3's Composition API. They orchestrate game interactions, manage UI behavior, and bridge user input to store actions. All composables are auto-imported in Nuxt 4.
   </description>
 
   <location>
@@ -28,7 +28,7 @@
 
 <usage>
   - **Use TypeScript** with `<script lang="ts" setup>` and the Composition API
-  - **Auto-imported in Nuxt 3**, no need for manual imports
+  - **Auto-imported in Nuxt 4**, no need for manual imports
   - **Prefix composable files** with `use` (e.g., `useBalatroGame.ts`)
   - **Keep composables focused**: one responsibility per composable
   - **Orchestrate, don't calculate**: Composables call store actions and pure util functions

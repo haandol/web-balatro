@@ -8,7 +8,7 @@ You are working on the **web-balatro** project — a Balatro web game clone.
 
 ### Context Setup
 
-1. This is a **Nuxt 3 SPA** (CSR only, no SSR/server interactions) with **TypeScript**, **TailwindCSS**, and **Pinia**.
+1. This is a **Nuxt 4 SPA** (CSR only, no SSR/server interactions) with **TypeScript**, **TailwindCSS**, and **Pinia**.
 2. Game rules and mechanics are documented in [SPEC.md](./SPEC.md) — read it before implementing game logic.
 
 ### Verification (run before reporting back)
@@ -33,7 +33,7 @@ A mobile-friendly web clone of Balatro, the roguelike deck-building poker game. 
 
 ### Tech Stack
 
-- **Framework**: Nuxt 3 (SPA, CSR only) | **Language**: TypeScript
+- **Framework**: Nuxt 4 (SPA, CSR only) | **Language**: TypeScript
 - **Styling**: TailwindCSS (utility-first) | **Theme**: Dark green (#2d5a3a) + Gold accents (#ffd700), "Press_Start_2P" pixel font
 - **State**: Pinia (Composition API setup store) | **Package Manager**: pnpm
 - **Icons**: PrimeIcons
