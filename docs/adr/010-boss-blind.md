@@ -1,6 +1,6 @@
 # ADR-010: 보스 블라인드 (F8)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F8 — 보스 블라인드 (`specs/web-balatro.alps.md` Section 7.8)
 
@@ -35,7 +35,6 @@ type BossModifier =
   | { type: 'force_hand_size'; size: number }  // N장 필수 플레이
   | { type: 'no_discards' }                    // 디스카드 0으로 시작
   | { type: 'base_multiplied'; factor: number }// 기본 목표 점수 N배
-  | { type: 'halve_score' }                    // 기본 칩/승수 절반
 ```
 
 | 이름 | 수정자 | 설명 |
@@ -73,11 +72,12 @@ type BossModifier =
 
 | 항목 | 상태 |
 |---|---|
-| 보스 블라인드마다 고유 수정자가 적용된다 | ❌ 미구현 |
-| 디버프된 카드가 시각적으로 구분된다 | ❌ 미구현 |
-| 디버프된 카드는 점수에 기여하지 않는다 | ❌ 미구현 |
-| 보스 블라인드 수정자가 블라인드 선택 화면에서 미리 표시된다 | ❌ 미구현 |
+| 보스 블라인드마다 고유 수정자가 적용된다 | ✅ 완료 |
+| 디버프된 카드가 시각적으로 구분된다 | ✅ 완료 (opacity-40 + grayscale) |
+| 디버프된 카드는 점수에 기여하지 않는다 | ✅ 완료 (calculateScore에서 필터링) |
+| 보스 블라인드 수정자가 블라인드 선택 화면에서 미리 표시된다 | ✅ 완료 |
 | 보스 블라인드 클리어 시 $5 보상이 지급된다 | ✅ 완료 (BLIND_REWARDS.boss = 5) |
+| 앤티별 무작위 보스 선택 (런 내 중복 방지) | ✅ 완료 (usedBossIds) |
 
 ## Consequences
 

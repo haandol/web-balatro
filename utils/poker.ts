@@ -1,7 +1,9 @@
 import type { PlayingCard, Rank } from '~/types/card'
 import type { PokerHandType, HandResult, ScoreBreakdown } from '~/types/poker'
 import type { Joker, JokerTrigger } from '~/types/joker'
+import type { BossModifier } from '~/data/bossBlinds'
 import { RANK_CHIPS } from '~/data/cards'
+import { isDebuffed } from '~/utils/boss'
 
 const FACE_RANKS: Set<Rank> = new Set(['J', 'Q', 'K'])
 
@@ -208,13 +210,18 @@ export function calculateHandScore(result: HandResult): number {
  * 3. 조커 왼→오 순차 적용 (트리거 조건 평가 후): add_chips → totalChips, add_mult → totalMult, x_mult → totalMult
  * 4. finalScore = round(totalChips × totalMult)
  */
-export function calculateScore(result: HandResult, jokers: Joker[] = []): ScoreBreakdown {
-  const cardChips = result.scoringCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
+export function calculateScore(
+  result: HandResult,
+  jokers: Joker[] = [],
+  bossModifier: BossModifier | null = null
+): ScoreBreakdown {
+  const activeCards = result.scoringCards.filter((c) => !isDebuffed(c, bossModifier))
+  const cardChips = activeCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
   let totalChips = result.baseChips + cardChips
   let totalMult = result.baseMult
 
   for (const joker of jokers) {
-    const times = evaluateTrigger(joker.effect.trigger, result.scoringCards, result.type)
+    const times = evaluateTrigger(joker.effect.trigger, activeCards, result.type)
     if (times <= 0) continue
 
     const effectValue = joker.effect.value * times

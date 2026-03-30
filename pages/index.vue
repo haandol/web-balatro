@@ -2,6 +2,7 @@
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { BLIND_LABELS, getTargetScore } from '~/data/blinds'
 import { MAX_JOKER_SLOTS } from '~/data/jokers'
+import { isDebuffed } from '~/utils/boss'
 
 const gameStore = useGameStore()
 const {
@@ -21,15 +22,20 @@ const {
   shopJokers,
   rerollCost,
   jokers,
+  currentBoss,
+  activeBossModifier,
 } = storeToRefs(gameStore)
 
 const selectedCardIds = ref<Set<string>>(new Set())
 
 const selectionCount = computed(() => selectedCardIds.value.size)
-const canPlay = computed(
-  () =>
-    selectionCount.value >= 1 && selectionCount.value <= 5 && handsRemaining.value > 0 && gamePhase.value === 'playing'
-)
+const canPlay = computed(() => {
+  if (gamePhase.value !== 'playing' || handsRemaining.value <= 0) return false
+  if (selectionCount.value < 1 || selectionCount.value > 5) return false
+  const mod = activeBossModifier.value
+  if (mod?.type === 'force_hand_size') return selectionCount.value === mod.size
+  return true
+})
 const canDiscard = computed(
   () =>
     selectionCount.value >= 1 &&
@@ -48,7 +54,7 @@ const handPreview = computed(() => {
   const selectedCards = hand.value.filter((c) => selectedCardIds.value.has(c.id))
   if (selectedCards.length === 0) return null
   const result = evaluateHand(selectedCards)
-  const breakdown = calculateScore(result, gameStore.jokers)
+  const breakdown = calculateScore(result, gameStore.jokers, activeBossModifier.value)
   return { ...result, ...breakdown }
 })
 
@@ -93,6 +99,10 @@ function getJokerPrice(joker: { sellPrice: number }) {
   return joker.sellPrice * 2
 }
 
+function isCardDebuffed(card: { suit: string; rank: string }) {
+  return isDebuffed(card as import('~/types/card').PlayingCard, activeBossModifier.value)
+}
+
 onMounted(() => {
   gameStore.initRun()
 })
@@ -129,7 +139,20 @@ onMounted(() => {
               class="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 px-8 py-8 text-center max-w-sm w-full"
             >
               <div class="text-gold font-pixel text-base mb-1">ANTE {{ currentAnte }}</div>
-              <div class="text-white font-pixel text-lg mb-6">{{ blindLabel }}</div>
+              <div class="text-white font-pixel text-lg mb-2">{{ blindLabel }}</div>
+
+              <!-- Boss blind info -->
+              <div
+                v-if="currentBlind === 'boss' && currentBoss"
+                class="mb-4"
+              >
+                <div class="text-red-400 font-bold text-sm">{{ currentBoss.name }}</div>
+                <div class="text-red-300/70 text-xs">{{ currentBoss.description }}</div>
+              </div>
+              <div
+                v-else
+                class="mb-4"
+              />
 
               <div class="bg-white/5 rounded-xl px-5 py-4 mb-6">
                 <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Target Score</div>
@@ -246,6 +269,7 @@ onMounted(() => {
                 <CardPlaying
                   :card="card"
                   :selected="selectedCardIds.has(card.id)"
+                  :debuffed="isCardDebuffed(card)"
                   @click="toggleCard(card.id)"
                 />
               </div>

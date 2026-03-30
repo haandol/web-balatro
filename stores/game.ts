@@ -9,6 +9,7 @@ import { type BlindType, BLIND_ORDER, MAX_ANTE, getTargetScore, BLIND_REWARDS } 
 import { JOKER_DEFINITIONS, MAX_JOKER_SLOTS } from '~/data/jokers'
 import type { JokerRarity } from '~/types/joker'
 import { calculateRoundEarnings, type RoundEarnings } from '~/utils/economy'
+import { BOSS_BLINDS, type BossBlind } from '~/data/bossBlinds'
 
 export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -26,6 +27,10 @@ export const useGameStore = defineStore('game', () => {
   const currentAnte = ref(1)
   const currentBlind = ref<BlindType>('small')
   const gamePhase = ref<GamePhase>('blind_select')
+
+  // --- F8: Boss Blind ---
+  const currentBoss = ref<BossBlind | null>(null)
+  const usedBossIds = ref<string[]>([])
 
   // --- F2: Round State ---
   const handsRemaining = ref(DEFAULT_HANDS)
@@ -52,6 +57,9 @@ export const useGameStore = defineStore('game', () => {
   const handSize = computed(() => hand.value.length)
   const discardPileSize = computed(() => discardPile.value.length)
   const totalCards = computed(() => drawPile.value.length + hand.value.length + discardPile.value.length)
+  const activeBossModifier = computed(() =>
+    currentBlind.value === 'boss' ? (currentBoss.value?.modifier ?? null) : null
+  )
 
   // --- F7: Run Management ---
 
@@ -67,6 +75,9 @@ export const useGameStore = defineStore('game', () => {
     money.value = 4
     lastEarnings.value = null
     jokers.value = []
+    currentBoss.value = null
+    usedBossIds.value = []
+    selectBossForAnte()
     shopJokers.value = []
     rerollCost.value = BASE_REROLL_COST
 
@@ -77,16 +88,35 @@ export const useGameStore = defineStore('game', () => {
     discardPile.value = []
   }
 
+  /** 앤티에 대해 보스를 미리 선택한다 (블라인드 선택 화면에서 미리보기용). */
+  function selectBossForAnte() {
+    const available = BOSS_BLINDS.filter((b) => !usedBossIds.value.includes(b.id))
+    if (available.length === 0) {
+      // 모든 보스 사용 시 리셋
+      usedBossIds.value = []
+      currentBoss.value = BOSS_BLINDS[Math.floor(Math.random() * BOSS_BLINDS.length)]
+    } else {
+      currentBoss.value = available[Math.floor(Math.random() * available.length)]
+    }
+  }
+
   /** 현재 블라인드를 시작한다. 덱 리셔플 + 핸드/디스카드 초기화 + 카드 드로우. */
   function startBlind() {
     // 목표 점수 계산
-    targetScore.value = getTargetScore(currentAnte.value, currentBlind.value)
+    let base = getTargetScore(currentAnte.value, currentBlind.value)
+
+    // 보스 수정자: base_multiplied
+    if (currentBlind.value === 'boss' && currentBoss.value?.modifier.type === 'base_multiplied') {
+      base = Math.round(base * currentBoss.value.modifier.factor)
+    }
+    targetScore.value = base
     roundScore.value = 0
     lastHandResult.value = null
 
     // 핸드/디스카드 초기화
     handsRemaining.value = DEFAULT_HANDS
-    discardsRemaining.value = DEFAULT_DISCARDS
+    discardsRemaining.value =
+      currentBlind.value === 'boss' && currentBoss.value?.modifier.type === 'no_discards' ? 0 : DEFAULT_DISCARDS
 
     // 모든 카드를 draw pile로 모아서 리셔플
     drawPile.value = shuffle([...drawPile.value, ...hand.value, ...discardPile.value])
@@ -105,17 +135,20 @@ export const useGameStore = defineStore('game', () => {
   function advanceBlind() {
     const blindIndex = BLIND_ORDER.indexOf(currentBlind.value)
 
+    // 보스 클리어 시 사용 기록
+    if (currentBlind.value === 'boss' && currentBoss.value) {
+      usedBossIds.value = [...usedBossIds.value, currentBoss.value.id]
+    }
+
     if (blindIndex < BLIND_ORDER.length - 1) {
-      // 같은 앤티 내 다음 블라인드
       currentBlind.value = BLIND_ORDER[blindIndex + 1]
       gamePhase.value = 'blind_select'
     } else if (currentAnte.value < MAX_ANTE) {
-      // 다음 앤티로
       currentAnte.value += 1
       currentBlind.value = BLIND_ORDER[0]
+      selectBossForAnte()
       gamePhase.value = 'blind_select'
     } else {
-      // 앤티 8 보스 클리어 — 승리
       gamePhase.value = 'won'
     }
   }
@@ -236,11 +269,15 @@ export const useGameStore = defineStore('game', () => {
     if (handsRemaining.value <= 0) return
     if (cardIds.length < 1 || cardIds.length > 5) return
 
+    // force_hand_size 체크
+    const bossModifier = currentBlind.value === 'boss' ? (currentBoss.value?.modifier ?? null) : null
+    if (bossModifier?.type === 'force_hand_size' && cardIds.length !== bossModifier.size) return
+
     const playedCards = hand.value.filter((c) => cardIds.includes(c.id))
     if (playedCards.length === 0) return
 
     const result = evaluateHand(playedCards)
-    const breakdown = calculateScore(result, jokers.value)
+    const breakdown = calculateScore(result, jokers.value, bossModifier)
 
     lastHandResult.value = { ...result, ...breakdown }
     roundScore.value += breakdown.finalScore
@@ -302,11 +339,13 @@ export const useGameStore = defineStore('game', () => {
     lastEarnings,
     shopJokers,
     rerollCost,
+    currentBoss,
     // Getters
     drawPileSize,
     handSize,
     discardPileSize,
     totalCards,
+    activeBossModifier,
     // Actions
     initRun,
     startBlind,

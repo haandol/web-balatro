@@ -4,6 +4,7 @@ import type { PlayingCard } from '~/types/card'
 const props = defineProps<{
   card: PlayingCard
   selected?: boolean
+  debuffed?: boolean
 }>()
 
 defineEmits<{
@@ -23,7 +24,7 @@ const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit ===
 <template>
   <button
     class="playing-card group relative flex flex-col items-center justify-between cursor-pointer select-none transition-all duration-150"
-    :class="[selected ? 'is-selected' : '']"
+    :class="[selected ? 'is-selected' : '', debuffed ? 'opacity-40 grayscale' : '']"
     :aria-label="`${card.rank} of ${card.suit}`"
     @click="$emit('click')"
   >
@@ -41,11 +42,13 @@ const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit ===
         <span
           class="text-[11px] md:text-sm font-bold"
           :class="isRed ? 'text-red-600' : 'text-gray-900'"
-        >{{ card.rank }}</span>
+          >{{ card.rank }}</span
+        >
         <span
           class="text-[10px] md:text-xs -mt-0.5"
           :class="isRed ? 'text-red-500' : 'text-gray-700'"
-        >{{ suitSymbol[card.suit] }}</span>
+          >{{ suitSymbol[card.suit] }}</span
+        >
       </div>
 
       <!-- Center suit (large) -->
@@ -53,7 +56,8 @@ const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit ===
         <span
           class="text-2xl md:text-3xl drop-shadow-sm"
           :class="isRed ? 'text-red-500' : 'text-gray-800'"
-        >{{ suitSymbol[card.suit] }}</span>
+          >{{ suitSymbol[card.suit] }}</span
+        >
       </div>
 
       <!-- Bottom-right rank + suit (inverted) -->
@@ -61,15 +65,19 @@ const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit ===
         <span
           class="text-[11px] md:text-sm font-bold"
           :class="isRed ? 'text-red-600' : 'text-gray-900'"
-        >{{ card.rank }}</span>
+          >{{ card.rank }}</span
+        >
         <span
           class="text-[10px] md:text-xs -mt-0.5"
           :class="isRed ? 'text-red-500' : 'text-gray-700'"
-        >{{ suitSymbol[card.suit] }}</span>
+          >{{ suitSymbol[card.suit] }}</span
+        >
       </div>
 
       <!-- Shine effect -->
-      <div class="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"
+      />
     </div>
   </button>
 </template>
