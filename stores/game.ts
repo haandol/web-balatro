@@ -5,25 +5,32 @@ import type { HandResult, ScoreBreakdown } from '~/types/poker'
 import type { Joker } from '~/types/joker'
 import { createDeck, shuffle, draw } from '~/utils/deck'
 import { evaluateHand, calculateScore } from '~/utils/poker'
+import { type BlindType, BLIND_ORDER, MAX_ANTE, getTargetScore, BLIND_REWARDS } from '~/data/blinds'
+
+export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'won' | 'lost'
 
 export const useGameStore = defineStore('game', () => {
   const DEFAULT_HAND_SIZE = 8
   const DEFAULT_HANDS = 4
   const DEFAULT_DISCARDS = 3
-  const DEFAULT_TARGET_SCORE = 300
 
   // --- F1: Deck State ---
   const drawPile = ref<PlayingCard[]>([])
   const hand = ref<PlayingCard[]>([])
   const discardPile = ref<PlayingCard[]>([])
 
+  // --- F7: Ante/Blind State ---
+  const currentAnte = ref(1)
+  const currentBlind = ref<BlindType>('small')
+  const gamePhase = ref<GamePhase>('blind_select')
+
   // --- F2: Round State ---
   const handsRemaining = ref(DEFAULT_HANDS)
   const discardsRemaining = ref(DEFAULT_DISCARDS)
   const roundScore = ref(0)
-  const targetScore = ref(DEFAULT_TARGET_SCORE)
+  const targetScore = ref(0)
   const lastHandResult = ref<(HandResult & ScoreBreakdown) | null>(null)
-  const gamePhase = ref<'playing' | 'won' | 'lost'>('playing')
+  const roundReward = ref(0)
 
   // --- F5/F6: Jokers ---
   const jokers = ref<Joker[]>([])
@@ -34,26 +41,73 @@ export const useGameStore = defineStore('game', () => {
   const discardPileSize = computed(() => discardPile.value.length)
   const totalCards = computed(() => drawPile.value.length + hand.value.length + discardPile.value.length)
 
-  // --- F1: Deck Actions ---
+  // --- F7: Run Management ---
 
-  function initDeck() {
+  /** 새 런을 시작한다. 앤티 1, 스몰 블라인드 선택 화면으로. */
+  function initRun() {
+    currentAnte.value = 1
+    currentBlind.value = 'small'
+    gamePhase.value = 'blind_select'
+    roundScore.value = 0
+    targetScore.value = 0
+    lastHandResult.value = null
+    roundReward.value = 0
+    jokers.value = []
+
+    // 덱 초기화
     const deck = shuffle(createDeck())
-    const { drawn, remaining } = draw(deck, DEFAULT_HAND_SIZE)
-    drawPile.value = remaining
-    hand.value = drawn
+    drawPile.value = deck
+    hand.value = []
     discardPile.value = []
+  }
+
+  /** 현재 블라인드를 시작한다. 덱 리셔플 + 핸드/디스카드 초기화 + 카드 드로우. */
+  function startBlind() {
+    // 목표 점수 계산
+    targetScore.value = getTargetScore(currentAnte.value, currentBlind.value)
+    roundScore.value = 0
+    lastHandResult.value = null
+
+    // 핸드/디스카드 초기화
     handsRemaining.value = DEFAULT_HANDS
     discardsRemaining.value = DEFAULT_DISCARDS
-    roundScore.value = 0
-    targetScore.value = DEFAULT_TARGET_SCORE
-    lastHandResult.value = null
+
+    // 모든 카드를 draw pile로 모아서 리셔플
+    drawPile.value = shuffle([...drawPile.value, ...hand.value, ...discardPile.value])
+    hand.value = []
+    discardPile.value = []
+
+    // 카드 드로우
+    const { drawn, remaining } = draw(drawPile.value, DEFAULT_HAND_SIZE)
+    hand.value = drawn
+    drawPile.value = remaining
+
     gamePhase.value = 'playing'
-    jokers.value = []
   }
+
+  /** 블라인드 클리어 후 다음 블라인드로 이동한다. */
+  function advanceBlind() {
+    const blindIndex = BLIND_ORDER.indexOf(currentBlind.value)
+
+    if (blindIndex < BLIND_ORDER.length - 1) {
+      // 같은 앤티 내 다음 블라인드
+      currentBlind.value = BLIND_ORDER[blindIndex + 1]
+      gamePhase.value = 'blind_select'
+    } else if (currentAnte.value < MAX_ANTE) {
+      // 다음 앤티로
+      currentAnte.value += 1
+      currentBlind.value = BLIND_ORDER[0]
+      gamePhase.value = 'blind_select'
+    } else {
+      // 앤티 8 보스 클리어 — 승리
+      gamePhase.value = 'won'
+    }
+  }
+
+  // --- F1: Deck Actions ---
 
   function drawCards(count: number) {
     if (count <= 0) return
-    // draw pile이 부족하면 자동 리셔플
     if (drawPile.value.length < count && discardPile.value.length > 0) {
       reshuffleDeck()
     }
@@ -76,7 +130,6 @@ export const useGameStore = defineStore('game', () => {
 
   // --- F2: Play Actions ---
 
-  /** 선택된 카드로 핸드를 플레이한다. */
   function playHand(cardIds: string[]) {
     if (gamePhase.value !== 'playing') return
     if (handsRemaining.value <= 0) return
@@ -85,33 +138,34 @@ export const useGameStore = defineStore('game', () => {
     const playedCards = hand.value.filter((c) => cardIds.includes(c.id))
     if (playedCards.length === 0) return
 
-    // 포커 핸드 판별 및 점수 계산 (조커 효과 반영)
     const result = evaluateHand(playedCards)
     const breakdown = calculateScore(result, jokers.value)
 
-    // 상태 갱신
     lastHandResult.value = { ...result, ...breakdown }
     roundScore.value += breakdown.finalScore
     handsRemaining.value -= 1
 
-    // 플레이된 카드를 discard pile로 이동
     discardFromHand(cardIds)
 
-    // 핸드 크기까지 카드 보충
     const deficit = DEFAULT_HAND_SIZE - hand.value.length
     if (deficit > 0) {
       drawCards(deficit)
     }
 
-    // 승/패 판정
+    // 블라인드 클리어 판정
     if (roundScore.value >= targetScore.value) {
-      gamePhase.value = 'won'
+      roundReward.value = BLIND_REWARDS[currentBlind.value]
+      // 앤티 8 보스 클리어 시 바로 승리
+      if (currentAnte.value >= MAX_ANTE && currentBlind.value === 'boss') {
+        gamePhase.value = 'won'
+      } else {
+        gamePhase.value = 'round_end'
+      }
     } else if (handsRemaining.value <= 0) {
       gamePhase.value = 'lost'
     }
   }
 
-  /** 선택된 카드를 버리고 같은 수만큼 새 카드를 드로우한다. */
   function discardCards(cardIds: string[]) {
     if (gamePhase.value !== 'playing') return
     if (discardsRemaining.value <= 0) return
@@ -128,6 +182,8 @@ export const useGameStore = defineStore('game', () => {
     drawPile,
     hand,
     discardPile,
+    currentAnte,
+    currentBlind,
     handsRemaining,
     discardsRemaining,
     roundScore,
@@ -135,13 +191,16 @@ export const useGameStore = defineStore('game', () => {
     lastHandResult,
     gamePhase,
     jokers,
+    roundReward,
     // Getters
     drawPileSize,
     handSize,
     discardPileSize,
     totalCards,
     // Actions
-    initDeck,
+    initRun,
+    startBlind,
+    advanceBlind,
     drawCards,
     reshuffleDeck,
     discardFromHand,

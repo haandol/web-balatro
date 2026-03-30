@@ -26,6 +26,10 @@ export default defineNuxtConfig({
     },
   },
 
+  watch: {
+    ignore: ['docs/**', 'specs/**'],
+  },
+
   typescript: {
     strict: true,
   },
