@@ -1,6 +1,6 @@
 # ADR-002: 핸드 플레이 (F2)
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-03-31
 - **ALPS Feature**: F2 — 핸드 플레이 (`specs/web-balatro.alps.md` Section 7.2)
 
@@ -64,11 +64,17 @@ F4의 핵심 로직을 함께 구현:
 
 | 항목 | 상태 |
 |---|---|
-| 1~5장 카드 선택하여 플레이 | ❌ 미구현 (선택만 가능, playHand 액션 없음) |
-| 0장/6장+ 선택 시 Play 버튼 비활성화 | ❌ 미구현 (Play 버튼 자체 없음) |
-| 플레이 후 handsRemaining 1 감소 | ❌ 미구현 (handsRemaining 상태 없음) |
-| 핸드 0 + 목표 미달 시 게임 오버 | ❌ 미구현 |
-| 플레이 후 핸드 크기만큼 카드 보충 | ❌ 미구현 (drawCards 존재하나 미연동) |
+| 1~5장 카드 선택하여 플레이 | ✅ 완료 (playHand 액션 + Play Hand 버튼) |
+| 0장/6장+ 선택 시 Play 버튼 비활성화 | ✅ 완료 (canPlay computed) |
+| 플레이 후 handsRemaining 1 감소 | ✅ 완료 |
+| 핸드 0 + 목표 미달 시 게임 오버 | ✅ 완료 (gamePhase 상태 관리) |
+| 플레이 후 핸드 크기만큼 카드 보충 | ✅ 완료 (자동 리셔플 포함) |
+| 포커 핸드 판별 (10종) | ✅ 완료 (utils/poker.ts) |
+| 기본 점수 계산 (칩 × 승수) | ✅ 완료 (조커 미적용) |
+| Discard 버튼 + discardsRemaining 추적 | ✅ 완료 (F3 기본 지원) |
+| 점수 / 목표 표시 + 프로그레스 바 | ✅ 완료 |
+| 점수 계산 애니메이션 | ❌ 미구현 |
+| 카드 이동 애니메이션 | ❌ 미구현 |
 
 ## Consequences
 
