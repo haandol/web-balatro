@@ -55,41 +55,49 @@ pnpm generate     # Static site generation
 ### Development Cycle
 
 ```
-1. Review/Create ADR → 2. Implement feature → 3. Build verification → 4. Debug if needed → 5. Sync ADR → 6. Commit
+1. ALPS Feature 확인 → 2. ADR 작성 (Proposed) → 3. Implement → 4. Verify (lint/format/build) → 5. ADR 갱신 (Accepted) → 6. Commit
 ```
 
-- **New feature**: You MUST read the relevant ADR first or create a new one before starting implementation. (See "ADR Workflow" section for details.)
-- **Bug fix**: Identify root cause, fix, and verify build. No ADR update needed if there is no architectural change.
-- **Before commit**: If implementation diverges from an ADR, you MUST update the ADR and the `docs/adr/README.md` index.
-- **Rollback**: If build fails, `git stash` or `git checkout -- <file>` and retry in smaller increments. Never `git reset --hard` or force push without user confirmation.
+- **ALPS Feature 구현 시 (F1~F13)**: 반드시 `specs/web-balatro.alps.md`에서 해당 Feature의 요구사항을 읽고, ADR을 **먼저** 작성한 뒤 구현을 시작한다. ADR 없이 Feature 구현 코드를 작성하지 않는다.
+- **ADR 작성**: ALPS Feature ID를 ADR 제목과 파일명에 포함한다 (예: `002-hand-play.md`, 제목: `ADR-002: 핸드 플레이 (F2)`). ALPS의 User Story, Technical Description, Acceptance Criteria를 ADR의 Context와 Decision에 반영한다.
+- **Bug fix**: 근본 원인 파악 → 수정 → 빌드 검증. 아키텍처 변경이 없으면 ADR 불필요.
+- **Before commit**: 구현이 ADR과 다르면 반드시 ADR을 갱신하고 `docs/adr/README.md` 인덱스를 업데이트한다.
+- **Rollback**: 빌드 실패 시 `git stash` 또는 `git checkout -- <file>`로 되돌리고 작은 단위로 재시도. 사용자 확인 없이 `git reset --hard`나 force push 금지.
 
 ## Architecture Decision Records
 
-`docs/adr/` — Creating or updating ADRs is mandatory for new features and major changes.
+`docs/adr/` — ALPS Feature(F1~F13) 구현 시 ADR 선행 작성이 **필수**이다.
+
+### ALPS Feature → ADR 매핑 규칙
+
+1. **1 Feature = 1 ADR**: ALPS의 각 Feature ID(F1~F13)는 하나의 ADR에 대응한다.
+2. **파일명**: `NNN-short-title.md` (예: `001-deck-initialization-and-management.md`)
+3. **제목**: `ADR-NNN: 한글 제목 (Feature ID)` (예: `ADR-001: 덱 초기화 및 관리 (F1)`)
+4. **ALPS 연동**: ADR의 Context 섹션에 ALPS Feature의 User Story와 Technical Description을 요약하고, Acceptance Criteria를 "현재 구현 상태" 표에 포함한다.
 
 ### ADR Workflow
 
-#### Before Implementation (Required)
+#### Before Implementation (Required — 코드 작성 전 반드시 완료)
 
-1. **Check existing ADRs** — Read the `docs/adr/README.md` index and check if a related ADR exists
-2. **Create or review ADR**
-   - If no related ADR exists → Create a new ADR based on `docs/adr/TEMPLATE.md` (status: `Proposed`)
-   - If a related ADR exists → Read it and verify the current implementation direction aligns
-3. **Scope implementation to ADR** — Follow the Decision described in the ADR
+1. **ALPS Feature 확인** — `specs/web-balatro.alps.md`에서 구현할 Feature의 요구사항, Acceptance Criteria를 읽는다
+2. **기존 ADR 확인** — `docs/adr/README.md` 인덱스에서 관련 ADR이 이미 있는지 확인
+3. **ADR 작성/갱신**
+   - ADR이 없으면 → `docs/adr/TEMPLATE.md` 기반으로 새 ADR 작성 (status: `Proposed`)
+   - ADR이 있으면 → 현재 구현 방향이 ADR과 일치하는지 검토
+4. **ADR 커밋** — ADR을 먼저 커밋한 뒤 구현 코드를 작성한다 (별도 커밋 권장)
 
 #### After Implementation (Required)
 
-1. **Sync ADR** — If implementation differs from the ADR, update it (change status to `Accepted`)
-2. **Update README index** — Keep the `docs/adr/README.md` ADR list up to date
-3. **Cascade updates** — If changes affect other ADRs, update those as well
+1. **ADR 갱신** — 구현이 완료되면 status를 `Accepted`로 변경하고, "현재 구현 상태" 표를 업데이트
+2. **README 인덱스 갱신** — `docs/adr/README.md` 목록을 최신 상태로 유지
+3. **연쇄 갱신** — 다른 ADR에 영향을 미치면 해당 ADR도 함께 업데이트
 
 #### When ADR is Not Required
 
-The following changes can skip ADR creation/update:
-- Simple bug fixes (no architectural change)
-- Style/formatting changes
-- Documentation typo fixes
-- Dependency patch version updates
+- 단순 버그 수정 (아키텍처 변경 없음)
+- 스타일/포매팅 변경
+- 문서 오탈자 수정
+- 의존성 패치 버전 업데이트
 
 ## Code Style & Architecture
 

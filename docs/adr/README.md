@@ -10,7 +10,10 @@
 
 ## 작성 규칙
 
-- 새 기능이나 주요 변경 시 ADR을 작성합니다
-- 파일명: `NNN-short-title.md` (예: `001-state-management.md`)
+- **ALPS Feature(F1~F13) 구현 시 ADR을 먼저 작성한 뒤 코드를 작성한다**
+- 1 Feature = 1 ADR (ALPS Feature ID를 제목에 포함)
+- 파일명: `NNN-short-title.md` (예: `001-deck-initialization-and-management.md`)
+- 제목: `ADR-NNN: 한글 제목 (Feature ID)` (예: `ADR-001: 덱 초기화 및 관리 (F1)`)
 - 템플릿: [TEMPLATE.md](./TEMPLATE.md)
 - 상태: `Proposed` → `Accepted` → `Deprecated` / `Superseded`
+- ALPS 사양: [`specs/web-balatro.alps.md`](../../specs/web-balatro.alps.md)
