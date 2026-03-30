@@ -24,6 +24,8 @@ const {
   jokers,
   currentBoss,
   activeBossModifier,
+  lastSkipTag,
+  freeRerolls,
 } = storeToRefs(gameStore)
 
 const selectedCardIds = ref<Set<string>>(new Set())
@@ -161,12 +163,30 @@ onMounted(() => {
                 </div>
               </div>
 
-              <button
-                class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-10 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs shadow-lg shadow-blue-900/50"
-                @click="handleStartBlind"
+              <div class="flex items-center justify-center gap-3">
+                <button
+                  class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-10 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs shadow-lg shadow-blue-900/50"
+                  @click="handleStartBlind"
+                >
+                  PLAY
+                </button>
+                <button
+                  v-if="currentBlind !== 'boss'"
+                  class="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-3 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs"
+                  @click="gameStore.skipBlind()"
+                >
+                  SKIP
+                </button>
+              </div>
+
+              <!-- Skip tag reward notification -->
+              <div
+                v-if="lastSkipTag"
+                class="mt-4 bg-green-900/40 border border-green-500/30 rounded-lg px-4 py-2 text-sm"
               >
-                PLAY
-              </button>
+                <span class="text-green-300 font-bold">{{ lastSkipTag.name }}</span>
+                <span class="text-green-200/70 ml-2">{{ lastSkipTag.description }}</span>
+              </div>
             </div>
           </div>
         </template>
@@ -412,14 +432,14 @@ onMounted(() => {
                 <button
                   class="px-5 py-2.5 rounded-lg font-bold text-sm transition-all duration-200"
                   :class="
-                    money >= rerollCost
+                    freeRerolls > 0 || money >= rerollCost
                       ? 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
                       : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                   "
-                  :disabled="money < rerollCost"
+                  :disabled="freeRerolls <= 0 && money < rerollCost"
                   @click="gameStore.rerollShop()"
                 >
-                  Reroll (${{ rerollCost }})
+                  {{ freeRerolls > 0 ? `Reroll (FREE x${freeRerolls})` : `Reroll ($${rerollCost})` }}
                 </button>
                 <button
                   class="bg-gold hover:bg-gold-dark text-black font-bold px-5 py-2.5 rounded-lg transition-all duration-200 active:scale-95 font-pixel text-xs"

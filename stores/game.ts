@@ -10,6 +10,7 @@ import { JOKER_DEFINITIONS, MAX_JOKER_SLOTS } from '~/data/jokers'
 import type { JokerRarity } from '~/types/joker'
 import { calculateRoundEarnings, type RoundEarnings } from '~/utils/economy'
 import { BOSS_BLINDS, type BossBlind } from '~/data/bossBlinds'
+import { TAGS, type Tag } from '~/data/tags'
 
 export type GamePhase = 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -47,6 +48,10 @@ export const useGameStore = defineStore('game', () => {
   const money = ref(4)
   const lastEarnings = ref<RoundEarnings | null>(null)
 
+  // --- F11: Blind Skip ---
+  const lastSkipTag = ref<Tag | null>(null)
+  const freeRerolls = ref(0)
+
   // --- F9: Shop ---
   const shopJokers = ref<Joker[]>([])
   const rerollCost = ref(5)
@@ -78,6 +83,8 @@ export const useGameStore = defineStore('game', () => {
     currentBoss.value = null
     usedBossIds.value = []
     selectBossForAnte()
+    lastSkipTag.value = null
+    freeRerolls.value = 0
     shopJokers.value = []
     rerollCost.value = BASE_REROLL_COST
 
@@ -112,6 +119,7 @@ export const useGameStore = defineStore('game', () => {
     targetScore.value = base
     roundScore.value = 0
     lastHandResult.value = null
+    lastSkipTag.value = null
 
     // 핸드/디스카드 초기화
     handsRemaining.value = DEFAULT_HANDS
@@ -129,6 +137,23 @@ export const useGameStore = defineStore('game', () => {
     drawPile.value = remaining
 
     gamePhase.value = 'playing'
+  }
+
+  /** 스몰/빅 블라인드를 스킵한다. 태그 보상을 받고 다음 블라인드로 이동. */
+  function skipBlind() {
+    if (currentBlind.value === 'boss') return
+    if (gamePhase.value !== 'blind_select') return
+
+    const tag = TAGS[Math.floor(Math.random() * TAGS.length)]
+    lastSkipTag.value = tag
+
+    if (tag.reward.type === 'money') {
+      money.value += tag.reward.amount
+    } else if (tag.reward.type === 'free_reroll') {
+      freeRerolls.value += tag.reward.count
+    }
+
+    advanceBlind()
   }
 
   /** 블라인드 클리어 후 다음 블라인드로 이동한다. */
@@ -206,9 +231,13 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function rerollShop(): boolean {
-    if (!spendMoney(rerollCost.value)) return false
+    if (freeRerolls.value > 0) {
+      freeRerolls.value -= 1
+    } else {
+      if (!spendMoney(rerollCost.value)) return false
+      rerollCost.value += 1
+    }
     shopJokers.value = [generateShopJoker(), generateShopJoker()]
-    rerollCost.value += 1
     return true
   }
 
@@ -340,6 +369,8 @@ export const useGameStore = defineStore('game', () => {
     shopJokers,
     rerollCost,
     currentBoss,
+    lastSkipTag,
+    freeRerolls,
     // Getters
     drawPileSize,
     handSize,
@@ -349,6 +380,7 @@ export const useGameStore = defineStore('game', () => {
     // Actions
     initRun,
     startBlind,
+    skipBlind,
     advanceBlind,
     addJoker,
     removeJoker,

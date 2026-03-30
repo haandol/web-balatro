@@ -16,6 +16,7 @@
 | [008](./008-economy-system.md) | 경제 시스템 (F10) | Accepted | 2026-03-31 |
 | [009](./009-shop-system.md) | 상점 시스템 (F9) | Accepted | 2026-03-31 |
 | [010](./010-boss-blind.md) | 보스 블라인드 (F8) | Accepted | 2026-03-31 |
+| [011](./011-blind-skip.md) | 블라인드 스킵 (F11) | Accepted | 2026-03-31 |
 
 ## 작성 규칙
 
