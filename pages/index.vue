@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { evaluateHand, calculateHandScore } from '~/utils/poker'
+
 const gameStore = useGameStore()
 const {
   hand,
@@ -22,6 +24,16 @@ const canDiscard = computed(
   () => selectionCount.value >= 1 && selectionCount.value <= 5 && discardsRemaining.value > 0 && gamePhase.value === 'playing'
 )
 const scorePercent = computed(() => Math.min((roundScore.value / targetScore.value) * 100, 100))
+
+// 선택된 카드에 대한 실시간 핸드 프리뷰
+const handPreview = computed(() => {
+  if (selectedCardIds.value.size === 0) return null
+  const selectedCards = hand.value.filter((c) => selectedCardIds.value.has(c.id))
+  if (selectedCards.length === 0) return null
+  const result = evaluateHand(selectedCards)
+  const score = calculateHandScore(result)
+  return { ...result, score }
+})
 
 function toggleCard(cardId: string) {
   if (gamePhase.value !== 'playing') return
@@ -122,12 +134,29 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Last Hand Result -->
+        <!-- Hand Preview (선택 중) / Last Hand Result (선택 없을 때) -->
         <div
-          v-if="lastHandResult && gamePhase === 'playing'"
+          v-if="gamePhase === 'playing'"
           class="text-center mb-3"
         >
-          <div class="inline-flex items-center gap-2 bg-black/40 border border-gold/30 rounded-lg px-4 py-2">
+          <!-- 실시간 프리뷰: 카드 선택 시 즉시 핸드 유형 + 예상 점수 표시 -->
+          <div
+            v-if="handPreview"
+            class="inline-flex flex-col items-center gap-1 bg-black/50 border border-blue-400/40 rounded-xl px-5 py-2.5"
+          >
+            <span class="text-blue-300 font-bold text-base md:text-lg">{{ handPreview.name }}</span>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-gray-400">{{ handPreview.baseChips }} chips</span>
+              <span class="text-gray-500">x</span>
+              <span class="text-gray-400">{{ handPreview.baseMult }} mult</span>
+            </div>
+            <span class="text-white font-bold text-lg md:text-xl tabular-nums">{{ handPreview.score.toLocaleString() }}</span>
+          </div>
+          <!-- 마지막 플레이 결과: 선택 없을 때 표시 -->
+          <div
+            v-else-if="lastHandResult"
+            class="inline-flex items-center gap-2 bg-black/40 border border-gold/30 rounded-lg px-4 py-2"
+          >
             <span class="text-gold font-bold text-sm md:text-base">{{ lastHandResult.name }}</span>
             <span class="text-white/60">—</span>
             <span class="text-white font-bold text-sm md:text-base">+{{ lastHandResult.score.toLocaleString() }}</span>
