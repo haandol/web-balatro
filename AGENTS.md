@@ -14,6 +14,8 @@ You are working on the **web-balatro** project — a Balatro web game clone.
 ### Verification (run before reporting back)
 
 ```bash
+npx eslint --fix <changed-files>     # lint + auto-fix
+npx prettier --write <changed-files> # format
 pnpm build                           # verify build
 ```
 
@@ -24,6 +26,7 @@ pnpm build                           # verify build
 - Separate game logic (pure functions) in `utils/`, orchestration in `composables/`, state in `stores/`.
 - Mobile-first responsive design with `md:` breakpoint (768px) for layout transitions.
 - Use `dark:` directive for dark mode. Never use `[data-theme="dark"]` or `:global(.dark)`.
+- Always run lint and format on changed files before committing.
 
 ---
 
@@ -46,6 +49,47 @@ pnpm dev          # Development server
 pnpm build        # Production build
 pnpm generate     # Static site generation
 ```
+
+## Agent Work Protocol
+
+### Development Cycle
+
+```
+1. Review/Create ADR → 2. Implement feature → 3. Build verification → 4. Debug if needed → 5. Sync ADR → 6. Commit
+```
+
+- **New feature**: You MUST read the relevant ADR first or create a new one before starting implementation. (See "ADR Workflow" section for details.)
+- **Bug fix**: Identify root cause, fix, and verify build. No ADR update needed if there is no architectural change.
+- **Before commit**: If implementation diverges from an ADR, you MUST update the ADR and the `docs/adr/README.md` index.
+- **Rollback**: If build fails, `git stash` or `git checkout -- <file>` and retry in smaller increments. Never `git reset --hard` or force push without user confirmation.
+
+## Architecture Decision Records
+
+`docs/adr/` — Creating or updating ADRs is mandatory for new features and major changes.
+
+### ADR Workflow
+
+#### Before Implementation (Required)
+
+1. **Check existing ADRs** — Read the `docs/adr/README.md` index and check if a related ADR exists
+2. **Create or review ADR**
+   - If no related ADR exists → Create a new ADR based on `docs/adr/TEMPLATE.md` (status: `Proposed`)
+   - If a related ADR exists → Read it and verify the current implementation direction aligns
+3. **Scope implementation to ADR** — Follow the Decision described in the ADR
+
+#### After Implementation (Required)
+
+1. **Sync ADR** — If implementation differs from the ADR, update it (change status to `Accepted`)
+2. **Update README index** — Keep the `docs/adr/README.md` ADR list up to date
+3. **Cascade updates** — If changes affect other ADRs, update those as well
+
+#### When ADR is Not Required
+
+The following changes can skip ADR creation/update:
+- Simple bug fixes (no architectural change)
+- Style/formatting changes
+- Documentation typo fixes
+- Dependency patch version updates
 
 ## Code Style & Architecture
 
@@ -119,3 +163,9 @@ Score = (base chips + card chips + joker chips) x (base mult + joker added mult)
 ## Approach with Caution
 
 `nuxt.config.ts`, score calculation logic in `utils/poker.ts`, game state structure in `stores/game.ts`.
+
+## Documentation Maintenance
+
+- ADR required for new/major features → create/update in `docs/adr/`
+- Keep ADR index (`docs/adr/README.md`) in sync — always update the index table when adding/modifying ADRs
+- Update this AGENTS.md when adding major features or changing project structure

@@ -37,6 +37,8 @@
 | `chore`    | 빌드 설정, 의존성 업데이트 등 유지보수    | -           |
 | `style`    | 코드 포매팅, 세미콜론 등 (로직 변경 없음) | -           |
 | `perf`     | 성능 개선                                 | -           |
+| `ci`       | CI/CD 설정 변경                           | -           |
+| `build`    | 빌드 시스템, 외부 의존성 변경             | -           |
 
 ### Scope (선택)
 
@@ -167,7 +169,7 @@ pnpm format        # Prettier 포매팅
 
 ### TypeScript & Vue
 
-- **프레임워크**: Nuxt 3 (SPA, CSR only)
+- **프레임워크**: Nuxt 4 (SPA, CSR only)
 - **스타일링**: TailwindCSS
 - **상태 관리**: Pinia (Composition API setup store)
 - **컴포넌트**: Vue 3 Composition API (`<script setup lang="ts">`)
