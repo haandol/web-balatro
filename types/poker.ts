@@ -24,6 +24,8 @@ export interface ScoreBreakdown {
   totalChips: number
   totalMult: number
   finalScore: number
+  moneyEarned: number
+  destroyedCardIds: string[]
 }
 
 export interface HandLevel {

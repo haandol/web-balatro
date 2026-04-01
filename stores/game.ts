@@ -638,12 +638,24 @@ export const useGameStore = defineStore('game', () => {
     const playedCards = hand.value.filter((c) => cardIds.includes(c.id))
     if (playedCards.length === 0) return
 
+    const remainingHandCards = hand.value.filter((c) => !cardIds.includes(c.id))
     const result = evaluateHand(playedCards, handLevels.value)
-    const breakdown = calculateScore(result, jokers.value, bossModifier)
+    const breakdown = calculateScore(result, jokers.value, bossModifier, remainingHandCards)
 
     lastHandResult.value = { ...result, ...breakdown }
     roundScore.value += breakdown.finalScore
     handsRemaining.value -= 1
+
+    // F21: 카드 수정자 부가 효과
+    if (breakdown.moneyEarned > 0) {
+      money.value += breakdown.moneyEarned
+    }
+    if (breakdown.destroyedCardIds.length > 0) {
+      for (const id of breakdown.destroyedCardIds) {
+        const idx = hand.value.findIndex((c) => c.id === id)
+        if (idx !== -1) hand.value.splice(idx, 1)
+      }
+    }
 
     // F12: 최고 핸드 갱신
     if (breakdown.finalScore > runStats.value.bestHand) {

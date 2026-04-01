@@ -1,8 +1,9 @@
-import type { PlayingCard, Rank } from '~/types/card'
+import type { PlayingCard, Rank, Suit } from '~/types/card'
 import type { PokerHandType, HandResult, ScoreBreakdown, HandLevelMap } from '~/types/poker'
 import type { Joker, JokerTrigger } from '~/types/joker'
 import type { BossModifier } from '~/data/bossBlinds'
-import { RANK_CHIPS } from '~/data/cards'
+import { RANK_CHIPS, SUITS } from '~/data/cards'
+import { ENHANCEMENTS, EDITIONS, SEALS } from '~/data/cardModifiers'
 import { isDebuffed } from '~/utils/boss'
 
 const FACE_RANKS: Set<Rank> = new Set(['J', 'Q', 'K'])
@@ -28,7 +29,7 @@ function evaluateTrigger(trigger: JokerTrigger, scoringCards: PlayingCard[], han
     case 'if_hand':
       return HAND_CONTAINS[handType].includes(trigger.handType) ? 1 : 0
     case 'per_suit':
-      return scoringCards.filter((c) => c.suit === trigger.suit).length
+      return scoringCards.filter((c) => getEffectiveSuits(c).includes(trigger.suit)).length
     case 'per_face_card':
       return scoringCards.filter((c) => FACE_RANKS.has(c.rank)).length
     case 'if_hand_size_lte':
@@ -65,6 +66,12 @@ const RANK_ORDER: Record<Rank, number> = {
   A: 14,
 }
 
+/** Wild Card는 모든 수트를 가진 것으로 간주 */
+function getEffectiveSuits(card: PlayingCard): Suit[] {
+  if (card.enhancement === 'wild') return [...SUITS]
+  return [card.suit]
+}
+
 function rankCounts(cards: PlayingCard[]): Map<Rank, PlayingCard[]> {
   const map = new Map<Rank, PlayingCard[]>()
   for (const card of cards) {
@@ -75,9 +82,11 @@ function rankCounts(cards: PlayingCard[]): Map<Rank, PlayingCard[]> {
   return map
 }
 
+/** Flush 판별 — Wild Card는 모든 수트로 간주 */
 function isFlush(cards: PlayingCard[]): boolean {
   if (cards.length < 5) return false
-  return cards.every((c) => c.suit === cards[0].suit)
+  // 어떤 수트든 모든 카드가 해당 수트를 가지고 있으면 Flush
+  return SUITS.some((suit) => cards.every((c) => getEffectiveSuits(c).includes(suit)))
 }
 
 function getStraightCards(cards: PlayingCard[]): PlayingCard[] | null {
@@ -119,132 +128,266 @@ function getStraightCards(cards: PlayingCard[]): PlayingCard[] | null {
   return null
 }
 
-/** 플레이된 카드에서 가장 높은 랭크의 포커 핸드를 판별한다. */
+/** 플레이된 카드에서 가장 높은 랭크의 포커 핸드를 판별한다. Stone Card는 핸드 평가에서 제외. */
 export function evaluateHand(cards: PlayingCard[], handLevels?: HandLevelMap): HandResult {
   if (cards.length === 0) {
-    return makeResult('HIGH_CARD', [], handLevels)
+    return makeResult('HIGH_CARD', [], cards, handLevels)
   }
 
-  const counts = rankCounts(cards)
-  const flush = isFlush(cards)
-  const straightCards = getStraightCards(cards)
+  // Stone Card는 핸드 평가에서 제외 (rank/suit 없음)
+  const evalCards = cards.filter((c) => c.enhancement !== 'stone')
+
+  if (evalCards.length === 0) {
+    // 모든 카드가 Stone인 경우 — High Card, 하지만 Stone 카드들은 항상 scoring
+    return makeResult('HIGH_CARD', [], cards, handLevels)
+  }
+
+  const counts = rankCounts(evalCards)
+  const flush = isFlush(evalCards)
+  const straightCards = getStraightCards(evalCards)
   const isStraight = straightCards !== null
 
-  // 그룹 크기별 분류
   const groups = [...counts.entries()].sort((a, b) => b[1].length - a[1].length || RANK_ORDER[b[0]] - RANK_ORDER[a[0]])
 
   const groupSizes = groups.map(([, g]) => g.length)
 
   // Royal Flush: A-K-Q-J-10 + flush
   if (flush && isStraight) {
-    const ranks = cards.map((c) => c.rank)
+    const ranks = evalCards.map((c) => c.rank)
     const isRoyal = ['A', 'K', 'Q', 'J', '10'].every((r) => ranks.includes(r as Rank))
     if (isRoyal) {
-      return makeResult('ROYAL_FLUSH', cards, handLevels)
+      return makeResult('ROYAL_FLUSH', evalCards, cards, handLevels)
     }
-    return makeResult('STRAIGHT_FLUSH', cards, handLevels)
+    return makeResult('STRAIGHT_FLUSH', evalCards, cards, handLevels)
   }
 
   // Four of a Kind
   if (groupSizes[0] === 4) {
-    return makeResult('FOUR_OF_A_KIND', groups[0][1], handLevels)
+    return makeResult('FOUR_OF_A_KIND', groups[0][1], cards, handLevels)
   }
 
   // Full House: 3 + 2
   if (groupSizes[0] === 3 && groupSizes[1] === 2) {
-    return makeResult('FULL_HOUSE', [...groups[0][1], ...groups[1][1]], handLevels)
+    return makeResult('FULL_HOUSE', [...groups[0][1], ...groups[1][1]], cards, handLevels)
   }
 
   // Flush
   if (flush) {
-    return makeResult('FLUSH', cards, handLevels)
+    return makeResult('FLUSH', evalCards, cards, handLevels)
   }
 
   // Straight
   if (isStraight) {
-    return makeResult('STRAIGHT', straightCards, handLevels)
+    return makeResult('STRAIGHT', straightCards, cards, handLevels)
   }
 
   // Three of a Kind
   if (groupSizes[0] === 3) {
-    return makeResult('THREE_OF_A_KIND', groups[0][1], handLevels)
+    return makeResult('THREE_OF_A_KIND', groups[0][1], cards, handLevels)
   }
 
   // Two Pair
   if (groupSizes[0] === 2 && groupSizes[1] === 2) {
-    return makeResult('TWO_PAIR', [...groups[0][1], ...groups[1][1]], handLevels)
+    return makeResult('TWO_PAIR', [...groups[0][1], ...groups[1][1]], cards, handLevels)
   }
 
   // One Pair
   if (groupSizes[0] === 2) {
-    return makeResult('ONE_PAIR', groups[0][1], handLevels)
+    return makeResult('ONE_PAIR', groups[0][1], cards, handLevels)
   }
 
   // High Card: 가장 높은 카드 1장만 scoring
-  const highestCard = [...cards].sort((a, b) => RANK_ORDER[b.rank] - RANK_ORDER[a.rank])[0]
-  return makeResult('HIGH_CARD', [highestCard], handLevels)
+  const highestCard = [...evalCards].sort((a, b) => RANK_ORDER[b.rank] - RANK_ORDER[a.rank])[0]
+  return makeResult('HIGH_CARD', [highestCard], cards, handLevels)
 }
 
-function makeResult(type: PokerHandType, scoringCards: PlayingCard[], handLevels?: HandLevelMap): HandResult {
+function makeResult(
+  type: PokerHandType,
+  scoringCards: PlayingCard[],
+  allPlayedCards: PlayingCard[],
+  handLevels?: HandLevelMap
+): HandResult {
   const base = HAND_BASE[type]
   const level = handLevels?.[type]
+
+  // Stone 카드는 항상 scoring card에 포함 (독립적으로 +50 chips 제공)
+  const stoneCards = allPlayedCards.filter((c) => c.enhancement === 'stone' && !scoringCards.includes(c))
+  const finalScoringCards = [...scoringCards, ...stoneCards]
+
   return {
     type,
     name: base.name,
     baseChips: level?.baseChips ?? base.chips,
     baseMult: level?.baseMult ?? base.mult,
-    scoringCards,
+    scoringCards: finalScoringCards,
   }
 }
 
 /** 기본 점수 계산: (baseChips + scoring cards chips) × baseMult (조커 미적용) */
 export function calculateHandScore(result: HandResult): number {
-  const cardChips = result.scoringCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
+  const cardChips = result.scoringCards.reduce((sum, card) => {
+    if (card.enhancement === 'stone') return sum + 50
+    return sum + RANK_CHIPS[card.rank]
+  }, 0)
   const totalChips = result.baseChips + cardChips
   return Math.round(totalChips * result.baseMult)
 }
 
 /**
- * 조커 포함 점수 계산.
- * 1. totalChips = baseChips + sum(scoring card chips)
- * 2. totalMult = baseMult
- * 3. 조커 왼→오 순차 적용 (트리거 조건 평가 후): add_chips → totalChips, add_mult → totalMult, x_mult → totalMult
- * 4. finalScore = round(totalChips × totalMult)
+ * 조커 + 카드 수정자 포함 점수 계산 (F21 확장).
+ *
+ * 6단계 파이프라인:
+ * 1. 핸드 타입 판별 (evaluateHand에서 처리)
+ * 2. 기본 Chips/Mult (handLevels 반영, evaluateHand에서 처리)
+ * 3. 스코어링 카드 처리 (Enhancement/Edition/Seal, 왼→오)
+ * 4. 핸드 내 카드 처리 (Steel Card in-hand)
+ * 5. 조커 효과 (기본 + 에디션)
+ * 6. 최종 = floor(totalChips × totalMult)
+ *
+ * @param allHandCards 현재 핸드에 남아있는 전체 카드 (Steel Card in-hand 계산용)
  */
 export function calculateScore(
   result: HandResult,
   jokers: Joker[] = [],
-  bossModifier: BossModifier | null = null
+  bossModifier: BossModifier | null = null,
+  allHandCards: PlayingCard[] = []
 ): ScoreBreakdown {
   const activeCards = result.scoringCards.filter((c) => !isDebuffed(c, bossModifier))
-  const cardChips = activeCards.reduce((sum, card) => sum + RANK_CHIPS[card.rank], 0)
-  let totalChips = result.baseChips + cardChips
+  let totalChips = result.baseChips
   let totalMult = result.baseMult
+  let moneyEarned = 0
+  const destroyedCardIds: string[] = []
 
+  // --- Step 3: 스코어링 카드 처리 (왼→오) ---
+  for (const card of activeCards) {
+    const retriggers = card.seal === 'red' ? 2 : 1
+
+    for (let t = 0; t < retriggers; t++) {
+      // a) 랭크 칩 (Stone Card는 랭크 칩 대신 +50)
+      if (card.enhancement === 'stone') {
+        totalChips += 50
+      } else {
+        totalChips += RANK_CHIPS[card.rank]
+      }
+
+      // b) Enhancement 효과
+      if (card.enhancement && card.enhancement !== 'wild' && card.enhancement !== 'stone') {
+        const enhDef = ENHANCEMENTS[card.enhancement]
+        const eff = enhDef.effect
+        if (eff.trigger === 'on_score') {
+          switch (eff.type) {
+            case 'add_chips':
+              totalChips += eff.value
+              break
+            case 'add_mult':
+              totalMult += eff.value
+              break
+            case 'x_mult':
+              totalMult *= eff.value
+              break
+            case 'lucky':
+              if (Math.random() < eff.multChance) {
+                totalMult += eff.multValue
+              }
+              if (Math.random() < eff.moneyChance) {
+                moneyEarned += eff.moneyValue
+              }
+              break
+          }
+        }
+      }
+
+      // c) Edition 효과
+      if (card.edition && card.edition !== 'base') {
+        const edDef = EDITIONS[card.edition]
+        const eff = edDef.effect
+        switch (eff.type) {
+          case 'add_chips':
+            totalChips += eff.value
+            break
+          case 'add_mult':
+            totalMult += eff.value
+            break
+          case 'x_mult':
+            totalMult *= eff.value
+            break
+        }
+      }
+
+      // d) Seal 효과 (Gold Seal = money)
+      if (card.seal === 'gold') {
+        const sealDef = SEALS.gold
+        if (sealDef.effect.type === 'earn_money') {
+          moneyEarned += sealDef.effect.value
+        }
+      }
+    }
+
+    // Glass Card 파괴 판정 (retrigger와 별개, 1회만 판정)
+    if (card.enhancement === 'glass') {
+      const glassEff = ENHANCEMENTS.glass.effect
+      if (glassEff.type === 'x_mult' && glassEff.destroyChance && Math.random() < glassEff.destroyChance) {
+        destroyedCardIds.push(card.id)
+      }
+    }
+  }
+
+  // --- Step 4: 핸드 내 카드 (Steel Card in-hand) ---
+  const inHandCards = allHandCards.filter(
+    (c) => !result.scoringCards.some((sc) => sc.id === c.id) && !isDebuffed(c, bossModifier)
+  )
+  for (const card of inHandCards) {
+    if (card.enhancement === 'steel') {
+      const retriggers = card.seal === 'red' ? 2 : 1
+      for (let t = 0; t < retriggers; t++) {
+        totalMult *= 1.5
+      }
+    }
+  }
+
+  // --- Step 5: 조커 효과 (기본 + 에디션) ---
   for (const joker of jokers) {
     const times = evaluateTrigger(joker.effect.trigger, activeCards, result.type)
-    if (times <= 0) continue
+    if (times > 0) {
+      const effectValue = joker.effect.value * times
+      switch (joker.effect.type) {
+        case 'add_chips':
+          totalChips += effectValue
+          break
+        case 'add_mult':
+          totalMult += effectValue
+          break
+        case 'x_mult':
+          for (let i = 0; i < times; i++) {
+            totalMult *= joker.effect.value
+          }
+          break
+      }
+    }
 
-    const effectValue = joker.effect.value * times
-    switch (joker.effect.type) {
-      case 'add_chips':
-        totalChips += effectValue
-        break
-      case 'add_mult':
-        totalMult += effectValue
-        break
-      case 'x_mult':
-        // xMult는 횟수만큼 반복 곱셈
-        for (let i = 0; i < times; i++) {
-          totalMult *= joker.effect.value
-        }
-        break
+    // 조커 에디션 효과
+    if (joker.edition && joker.edition !== 'base') {
+      const edDef = EDITIONS[joker.edition]
+      const eff = edDef.effect
+      switch (eff.type) {
+        case 'add_chips':
+          totalChips += eff.value
+          break
+        case 'add_mult':
+          totalMult += eff.value
+          break
+        case 'x_mult':
+          totalMult *= eff.value
+          break
+      }
     }
   }
 
   return {
     totalChips,
     totalMult,
-    finalScore: Math.round(totalChips * totalMult),
+    finalScore: Math.floor(totalChips * totalMult),
+    moneyEarned,
+    destroyedCardIds,
   }
 }
