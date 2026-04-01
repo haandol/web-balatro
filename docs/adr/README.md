@@ -25,6 +25,7 @@
 | [017](./017-spectral-cards.md) | 스펙트럴 카드 (F18) | Accepted | 2026-04-01 |
 | [018](./018-booster-packs.md) | 확장 부스터 팩 (F20) | Accepted | 2026-04-01 |
 | [019](./019-score-calculation-expansion.md) | 점수 계산 엔진 확장 (F21) | Accepted | 2026-04-01 |
+| [020](./020-tarot-cards.md) | 타로 카드 (F16) | Accepted | 2026-04-01 |
 
 ## 작성 규칙
 

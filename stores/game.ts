@@ -21,6 +21,8 @@ import { SUITS, RANKS } from '~/data/cards'
 import type { BoosterPack, OpenPackState } from '~/types/boosterPack'
 import { rollShopPack } from '~/data/boosterPacks'
 import { generatePackContents } from '~/utils/boosterPack'
+import { TAROT_DEFINITIONS } from '~/data/tarots'
+import { createRandomPlanetConsumable } from '~/utils/planet'
 
 export type GamePhase = 'menu' | 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -283,7 +285,12 @@ export const useGameStore = defineStore('game', () => {
       return result
     }
 
-    // F16(tarot) — 추후 구현
+    if (card.type === 'tarot') {
+      const result = applyTarotEffect(card)
+      if (result) removeConsumable(cardId)
+      return result
+    }
+
     return false
   }
 
@@ -458,6 +465,147 @@ export const useGameStore = defineStore('game', () => {
         const def2 = pool[Math.floor(Math.random() * pool.length)]
         const newJ: Joker = { ...def2, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
         jokers.value = [...jokers.value, newJ]
+        return true
+      }
+      default:
+        return false
+    }
+  }
+
+  // --- F16: Tarot Effect Application ---
+
+  const NEXT_RANK: Record<Rank, Rank> = {
+    '2': '3',
+    '3': '4',
+    '4': '5',
+    '5': '6',
+    '6': '7',
+    '7': '8',
+    '8': '9',
+    '9': '10',
+    '10': 'J',
+    J: 'Q',
+    Q: 'K',
+    K: 'A',
+    A: 'A',
+  }
+
+  function pickRandomHandIndices(count: number): number[] {
+    const max = Math.min(count, hand.value.length)
+    const indices = [...Array(hand.value.length).keys()]
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[indices[i], indices[j]] = [indices[j], indices[i]]
+    }
+    return indices.slice(0, max)
+  }
+
+  function applyTarotEffect(card: ConsumableCard): boolean {
+    const effectType = (card.effect as { type: string; effectType?: string }).effectType
+    if (!effectType) return false
+
+    const def = TAROT_DEFINITIONS.find((t) => t.effectType === effectType && t.name === card.name)
+
+    switch (effectType) {
+      case 'add_enhancement': {
+        if (hand.value.length === 0) return false
+        const enhancement = def?.enhancement
+        if (!enhancement) return false
+        const count = def?.targetCount ?? 1
+        const indices = pickRandomHandIndices(count)
+        const updated = [...hand.value]
+        for (const idx of indices) {
+          updated[idx] = { ...updated[idx], enhancement }
+        }
+        hand.value = updated
+        return true
+      }
+      case 'add_seal': {
+        if (hand.value.length === 0) return false
+        const idx = pickRandomHandIndices(1)[0]
+        const updated = [...hand.value]
+        updated[idx] = { ...updated[idx], seal: 'gold' }
+        hand.value = updated
+        return true
+      }
+      case 'convert_suit': {
+        if (hand.value.length === 0) return false
+        const suit = def?.suit
+        if (!suit) return false
+        const count = def?.targetCount ?? 3
+        const indices = pickRandomHandIndices(count)
+        const updated = [...hand.value]
+        for (const idx of indices) {
+          updated[idx] = { ...updated[idx], suit }
+        }
+        hand.value = updated
+        return true
+      }
+      case 'destroy_cards': {
+        if (hand.value.length === 0) return false
+        const count = Math.min(def?.targetCount ?? 2, hand.value.length)
+        destroyRandomHandCards(count)
+        return true
+      }
+      case 'copy_card_to_card': {
+        if (hand.value.length < 2) return false
+        const indices = pickRandomHandIndices(2)
+        const updated = [...hand.value]
+        const source = updated[indices[1]]
+        updated[indices[0]] = { ...source, id: updated[indices[0]].id }
+        hand.value = updated
+        return true
+      }
+      case 'increase_rank': {
+        if (hand.value.length === 0) return false
+        const count = def?.targetCount ?? 2
+        const indices = pickRandomHandIndices(count)
+        const updated = [...hand.value]
+        for (const idx of indices) {
+          updated[idx] = { ...updated[idx], rank: NEXT_RANK[updated[idx].rank] }
+        }
+        hand.value = updated
+        return true
+      }
+      case 'double_money': {
+        money.value += Math.min(money.value, 20)
+        return true
+      }
+      case 'random_joker_edition': {
+        if (jokers.value.length === 0) return false
+        if (Math.random() < 0.25) {
+          const editions: import('~/types/card').Edition[] = ['foil', 'holographic', 'polychrome']
+          const edition = editions[Math.floor(Math.random() * editions.length)]
+          const jIdx = Math.floor(Math.random() * jokers.value.length)
+          const updatedJokers = [...jokers.value]
+          updatedJokers[jIdx] = { ...updatedJokers[jIdx], edition }
+          jokers.value = updatedJokers
+        }
+        return true
+      }
+      case 'generate_planet': {
+        const slotsAvailable = consumableSlots.value - consumables.value.length
+        const count = Math.min(2, slotsAvailable)
+        for (let i = 0; i < count; i++) {
+          consumables.value = [...consumables.value, createRandomPlanetConsumable()]
+        }
+        return true
+      }
+      case 'generate_planet_single': {
+        if (consumables.value.length >= consumableSlots.value) return true
+        consumables.value = [...consumables.value, createRandomPlanetConsumable()]
+        return true
+      }
+      case 'generate_joker': {
+        if (jokers.value.length >= maxJokerSlots.value) return false
+        const pool = JOKER_DEFINITIONS.filter((d) => !getOwnedJokerNames().has(d.name))
+        const defs = pool.length > 0 ? pool : JOKER_DEFINITIONS
+        const jDef = defs[Math.floor(Math.random() * defs.length)]
+        const newJoker: Joker = {
+          ...jDef,
+          id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        }
+        jokers.value = [...jokers.value, newJoker]
         return true
       }
       default:
