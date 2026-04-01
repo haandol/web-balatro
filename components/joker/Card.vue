@@ -4,9 +4,15 @@ import { EDITIONS } from '~/data/cardModifiers'
 
 const props = defineProps<{
   joker: Joker
+  sellable?: boolean
+}>()
+
+const emit = defineEmits<{
+  sell: [id: string]
 }>()
 
 const showTooltip = ref(false)
+const showSellConfirm = ref(false)
 
 const rarityColor = computed(() => {
   switch (props.joker.rarity) {
@@ -52,16 +58,36 @@ const editionName = computed(() => {
   if (!e || e === 'base') return null
   return EDITIONS[e].name
 })
+
+const canSell = computed(() => props.sellable && !props.joker.eternal)
+
+function handleClick() {
+  if (canSell.value) {
+    showSellConfirm.value = !showSellConfirm.value
+    showTooltip.value = false
+  } else {
+    showTooltip.value = !showTooltip.value
+  }
+}
+
+function handleSell() {
+  emit('sell', props.joker.id)
+  showSellConfirm.value = false
+}
+
+function handleCancel() {
+  showSellConfirm.value = false
+}
 </script>
 
 <template>
   <div class="relative">
     <button
       class="w-[56px] h-[76px] md:w-[72px] md:h-[96px] rounded-lg border-2 flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 hover:scale-105 hover:shadow-lg"
-      :class="[rarityColor, editionClass]"
-      @mouseenter="showTooltip = true"
+      :class="[rarityColor, editionClass, showSellConfirm ? 'ring-2 ring-gold' : '']"
+      @mouseenter="!showSellConfirm && (showTooltip = true)"
       @mouseleave="showTooltip = false"
-      @click="showTooltip = !showTooltip"
+      @click="handleClick"
     >
       <span class="text-xl md:text-2xl">&#129313;</span>
       <span class="text-[7px] md:text-[8px] text-white/90 font-bold leading-tight text-center px-1 line-clamp-2">
@@ -79,7 +105,7 @@ const editionName = computed(() => {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="showTooltip"
+        v-if="showTooltip && !showSellConfirm"
         class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-48 bg-gray-900 border border-white/20 rounded-lg px-3 py-2 shadow-xl"
         @click="showTooltip = false"
       >
@@ -103,6 +129,38 @@ const editionName = computed(() => {
           Eternal
         </div>
         <div class="text-xs text-gray-300">{{ joker.description }}</div>
+      </div>
+    </Transition>
+
+    <!-- Sell Confirmation -->
+    <Transition
+      enter-active-class="transition duration-150"
+      enter-from-class="opacity-0 translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-100"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showSellConfirm"
+        class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-36 bg-gray-900 border border-gold/40 rounded-lg px-3 py-2 shadow-xl text-center"
+      >
+        <div class="text-xs text-gray-300 mb-1">Sell for</div>
+        <div class="text-sm font-bold text-gold mb-2">${{ joker.sellPrice }}</div>
+        <div class="flex items-center justify-center gap-2">
+          <button
+            class="text-[10px] px-2.5 py-1 rounded font-bold bg-gold hover:bg-gold-dark text-black active:scale-95 transition-all duration-150"
+            @click.stop="handleSell"
+          >
+            SELL
+          </button>
+          <button
+            class="text-[10px] px-2.5 py-1 rounded font-bold bg-gray-600 hover:bg-gray-500 text-white active:scale-95 transition-all duration-150"
+            @click.stop="handleCancel"
+          >
+            CANCEL
+          </button>
+        </div>
       </div>
     </Transition>
   </div>

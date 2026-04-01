@@ -27,6 +27,7 @@
 | [019](./019-score-calculation-expansion.md) | 점수 계산 엔진 확장 (F21) | Accepted | 2026-04-01 |
 | [020](./020-tarot-cards.md) | 타로 카드 (F16) | Accepted | 2026-04-01 |
 | [021](./021-vouchers.md) | 바우처 시스템 (F19) | Accepted | 2026-04-01 |
+| [022](./022-joker-sell-confirmation.md) | 상점 조커 판매 확인 UI | Accepted | 2026-04-01 |
 
 ## 작성 규칙
 

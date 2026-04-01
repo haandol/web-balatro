@@ -1,8 +1,13 @@
 <script lang="ts" setup>
 const gameStore = useGameStore()
-const { jokers, maxJokerSlots } = storeToRefs(gameStore)
+const { jokers, maxJokerSlots, gamePhase } = storeToRefs(gameStore)
 
 const emptySlots = computed(() => Math.max(0, maxJokerSlots.value - jokers.value.length))
+const isShop = computed(() => gamePhase.value === 'shop')
+
+function handleSell(jokerId: string) {
+  gameStore.sellJoker(jokerId)
+}
 </script>
 
 <template>
@@ -11,6 +16,8 @@ const emptySlots = computed(() => Math.max(0, maxJokerSlots.value - jokers.value
       v-for="joker in jokers"
       :key="joker.id"
       :joker="joker"
+      :sellable="isShop"
+      @sell="handleSell"
     />
     <!-- Empty slots -->
     <div
