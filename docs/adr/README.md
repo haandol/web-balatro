@@ -21,6 +21,8 @@
 | [013](./013-game-state-persistence.md) | 게임 상태 저장 (F13) | Accepted | 2026-03-31 |
 | [014](./014-card-modifier-system.md) | 카드 수정자 시스템 (F14) | Accepted | 2026-04-01 |
 | [015](./015-consumable-slot-management.md) | 소모품 슬롯 관리 (F15) | Accepted | 2026-04-01 |
+| [016](./016-planet-cards.md) | 플래닛 카드 (F17) | Accepted | 2026-04-01 |
+| [017](./017-spectral-cards.md) | 스펙트럴 카드 (F18) | Accepted | 2026-04-01 |
 
 ## 작성 규칙
 

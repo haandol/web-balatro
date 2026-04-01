@@ -13,7 +13,7 @@ const canUse = computed(() => gamePhase.value === 'playing')
       :key="card.id"
       :card="card"
       :can-use="canUse"
-      @use="gameStore.removeConsumable($event)"
+      @use="gameStore.useConsumable($event)"
       @sell="gameStore.sellConsumable($event)"
     />
     <!-- Empty slots -->

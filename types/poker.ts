@@ -25,3 +25,11 @@ export interface ScoreBreakdown {
   totalMult: number
   finalScore: number
 }
+
+export interface HandLevel {
+  level: number
+  baseChips: number
+  baseMult: number
+}
+
+export type HandLevelMap = Record<PokerHandType, HandLevel>

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { PlayingCard } from '~/types/card'
-import type { HandResult, ScoreBreakdown } from '~/types/poker'
+import type { HandResult, ScoreBreakdown, HandLevelMap } from '~/types/poker'
 import type { Joker } from '~/types/joker'
 import type { ConsumableCard } from '~/types/consumable'
 import { createDeck, shuffle, draw } from '~/utils/deck'
@@ -13,6 +13,11 @@ import { calculateRoundEarnings, type RoundEarnings } from '~/utils/economy'
 import { BOSS_BLINDS, type BossBlind } from '~/data/bossBlinds'
 import { TAGS, type Tag } from '~/data/tags'
 import { saveGame, loadGame, clearSave } from '~/utils/saveGame'
+import { createInitialHandLevels } from '~/data/planets'
+import { applyPlanetEffect } from '~/utils/planet'
+import type { PokerHandType } from '~/types/poker'
+import type { Rank, Enhancement } from '~/types/card'
+import { SUITS, RANKS } from '~/data/cards'
 
 export type GamePhase = 'menu' | 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -72,6 +77,12 @@ export const useGameStore = defineStore('game', () => {
   const consumables = ref<ConsumableCard[]>([])
   const consumableSlots = ref(2)
 
+  // --- F17: Hand Levels ---
+  const handLevels = ref<HandLevelMap>(createInitialHandLevels())
+
+  // --- F18: Spectral modifiers ---
+  const handSizeModifier = ref(0)
+
   // --- F9: Shop ---
   const shopJokers = ref<Joker[]>([])
   const rerollCost = ref(5)
@@ -82,6 +93,7 @@ export const useGameStore = defineStore('game', () => {
   const handSize = computed(() => hand.value.length)
   const discardPileSize = computed(() => discardPile.value.length)
   const totalCards = computed(() => drawPile.value.length + hand.value.length + discardPile.value.length)
+  const effectiveHandSize = computed(() => Math.max(1, DEFAULT_HAND_SIZE + handSizeModifier.value))
   const maxJokerSlots = computed(() => {
     const negativeCount = jokers.value.filter((j) => j.edition === 'negative').length
     return MAX_JOKER_SLOTS + negativeCount
@@ -112,6 +124,8 @@ export const useGameStore = defineStore('game', () => {
     freeRerolls.value = 0
     consumables.value = []
     consumableSlots.value = 2
+    handLevels.value = createInitialHandLevels()
+    handSizeModifier.value = 0
     shopJokers.value = []
     rerollCost.value = BASE_REROLL_COST
 
@@ -161,7 +175,7 @@ export const useGameStore = defineStore('game', () => {
     discardPile.value = []
 
     // 카드 드로우
-    const { drawn, remaining } = draw(drawPile.value, DEFAULT_HAND_SIZE)
+    const { drawn, remaining } = draw(drawPile.value, effectiveHandSize.value)
     hand.value = drawn
     drawPile.value = remaining
 
@@ -240,6 +254,206 @@ export const useGameStore = defineStore('game', () => {
     if (!card) return
     money.value += card.sellPrice
     removeConsumable(cardId)
+  }
+
+  function useConsumable(cardId: string): boolean {
+    if (gamePhase.value !== 'playing') return false
+    const card = consumables.value.find((c) => c.id === cardId)
+    if (!card) return false
+
+    if (card.type === 'planet' && card.effect.type === 'planet') {
+      const targetHand = (card.effect as { type: string; targetHand: string }).targetHand
+      handLevels.value = applyPlanetEffect(targetHand as PokerHandType, handLevels.value)
+      removeConsumable(cardId)
+      return true
+    }
+
+    if (card.type === 'spectral') {
+      const result = applySpectralEffect(card)
+      if (result) removeConsumable(cardId)
+      return result
+    }
+
+    // F16(tarot) — 추후 구현
+    return false
+  }
+
+  // --- F18: Spectral Effect Application ---
+
+  function generateCardId(): string {
+    return `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  }
+
+  function randomEnhancement(): Enhancement {
+    const enhancements: Enhancement[] = ['bonus', 'mult', 'wild', 'glass', 'steel', 'stone', 'gold', 'lucky']
+    return enhancements[Math.floor(Math.random() * enhancements.length)]
+  }
+
+  function destroyRandomHandCards(count: number) {
+    const toDestroy = Math.min(count, hand.value.length)
+    const indices = [...Array(hand.value.length).keys()]
+    // Fisher-Yates partial shuffle to pick random indices
+    for (let i = indices.length - 1; i > indices.length - 1 - toDestroy && i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[indices[i], indices[j]] = [indices[j], indices[i]]
+    }
+    const destroyIndices = new Set(indices.slice(-toDestroy))
+    hand.value = hand.value.filter((_, i) => !destroyIndices.has(i))
+  }
+
+  function createRandomPlayingCard(rankFilter: 'face' | 'ace' | 'number'): import('~/types/card').PlayingCard {
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)]
+    let rank: Rank
+    if (rankFilter === 'face') {
+      const faceRanks: Rank[] = ['J', 'Q', 'K']
+      rank = faceRanks[Math.floor(Math.random() * faceRanks.length)]
+    } else if (rankFilter === 'ace') {
+      rank = 'A'
+    } else {
+      const numberRanks: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10']
+      rank = numberRanks[Math.floor(Math.random() * numberRanks.length)]
+    }
+    return { id: generateCardId(), rank, suit, enhancement: randomEnhancement() }
+  }
+
+  function applySpectralEffect(card: ConsumableCard): boolean {
+    const effectType = (card.effect as { type: string; effectType?: string }).effectType
+    if (!effectType) return false
+
+    switch (effectType) {
+      case 'add_face_cards': {
+        destroyRandomHandCards(1)
+        for (let i = 0; i < 3; i++) {
+          drawPile.value = [...drawPile.value, createRandomPlayingCard('face')]
+        }
+        return true
+      }
+      case 'add_aces': {
+        destroyRandomHandCards(1)
+        for (let i = 0; i < 3; i++) {
+          drawPile.value = [...drawPile.value, createRandomPlayingCard('ace')]
+        }
+        return true
+      }
+      case 'add_number_cards': {
+        destroyRandomHandCards(1)
+        for (let i = 0; i < 4; i++) {
+          drawPile.value = [...drawPile.value, createRandomPlayingCard('number')]
+        }
+        return true
+      }
+      case 'copy_card': {
+        // Auto-select: copy a random card from hand
+        if (hand.value.length === 0) return false
+        const target = hand.value[Math.floor(Math.random() * hand.value.length)]
+        for (let i = 0; i < 2; i++) {
+          drawPile.value = [...drawPile.value, { ...target, id: generateCardId() }]
+        }
+        return true
+      }
+      case 'add_gold_seal': {
+        if (hand.value.length === 0) return false
+        const idx = Math.floor(Math.random() * hand.value.length)
+        const updated = [...hand.value]
+        updated[idx] = { ...updated[idx], seal: 'gold' }
+        hand.value = updated
+        return true
+      }
+      case 'add_random_edition': {
+        if (hand.value.length === 0) return false
+        const editions: import('~/types/card').Edition[] = ['foil', 'holographic', 'polychrome']
+        const edition = editions[Math.floor(Math.random() * editions.length)]
+        const idx2 = Math.floor(Math.random() * hand.value.length)
+        const updated2 = [...hand.value]
+        updated2[idx2] = { ...updated2[idx2], edition }
+        hand.value = updated2
+        return true
+      }
+      case 'create_rare_joker': {
+        if (jokers.value.length >= maxJokerSlots.value) return false
+        const rarePool = JOKER_DEFINITIONS.filter((d) => d.rarity === 'rare')
+        const def = rarePool[Math.floor(Math.random() * rarePool.length)]
+        const newJoker: Joker = { ...def, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+        jokers.value = [...jokers.value, newJoker]
+        money.value = 0
+        return true
+      }
+      case 'add_negative_to_joker': {
+        if (jokers.value.length === 0) return false
+        const jIdx = Math.floor(Math.random() * jokers.value.length)
+        const updatedJokers = [...jokers.value]
+        updatedJokers[jIdx] = { ...updatedJokers[jIdx], edition: 'negative' }
+        jokers.value = updatedJokers
+        handSizeModifier.value = Math.max(handSizeModifier.value - 1, -(DEFAULT_HAND_SIZE - 1))
+        return true
+      }
+      case 'copy_joker': {
+        if (jokers.value.length === 0) return false
+        const source = jokers.value[Math.floor(Math.random() * jokers.value.length)]
+        const copy: Joker = { ...source, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+        // Destroy all other non-eternal jokers
+        jokers.value = [copy, ...jokers.value.filter((j) => j.id === source.id || j.eternal)]
+        return true
+      }
+      case 'add_polychrome_to_joker': {
+        if (jokers.value.length === 0) return false
+        const targetIdx = Math.floor(Math.random() * jokers.value.length)
+        const targetJoker = jokers.value[targetIdx]
+        const updated3 = { ...targetJoker, edition: 'polychrome' as const }
+        // Destroy all other non-eternal jokers
+        jokers.value = [updated3, ...jokers.value.filter((j, i) => i !== targetIdx && j.eternal)]
+        return true
+      }
+      case 'unify_suit': {
+        if (hand.value.length === 0) return false
+        const suit = SUITS[Math.floor(Math.random() * SUITS.length)]
+        hand.value = hand.value.map((c) => ({ ...c, suit }))
+        return true
+      }
+      case 'unify_rank': {
+        if (hand.value.length === 0) return false
+        const rank = RANKS[Math.floor(Math.random() * RANKS.length)]
+        hand.value = hand.value.map((c) => ({ ...c, rank }))
+        handSizeModifier.value = Math.max(handSizeModifier.value - 1, -(DEFAULT_HAND_SIZE - 1))
+        return true
+      }
+      case 'gain_money': {
+        money.value += 20
+        destroyRandomHandCards(5)
+        return true
+      }
+      case 'level_all_hands': {
+        const handTypes: PokerHandType[] = [
+          'HIGH_CARD',
+          'ONE_PAIR',
+          'TWO_PAIR',
+          'THREE_OF_A_KIND',
+          'STRAIGHT',
+          'FLUSH',
+          'FULL_HOUSE',
+          'FOUR_OF_A_KIND',
+          'STRAIGHT_FLUSH',
+          'ROYAL_FLUSH',
+        ]
+        let levels = { ...handLevels.value }
+        for (const ht of handTypes) {
+          levels = applyPlanetEffect(ht, levels)
+        }
+        handLevels.value = levels
+        return true
+      }
+      case 'create_legendary_joker': {
+        // Phase 3에서 legendary 조커 구현 예정. 현재는 rare 조커로 대체
+        if (jokers.value.length >= maxJokerSlots.value) return false
+        const pool = JOKER_DEFINITIONS.filter((d) => d.rarity === 'rare')
+        const def2 = pool[Math.floor(Math.random() * pool.length)]
+        const newJ: Joker = { ...def2, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+        jokers.value = [...jokers.value, newJ]
+        return true
+      }
+      default:
+        return false
+    }
   }
 
   // --- F9: Shop Actions ---
@@ -368,7 +582,7 @@ export const useGameStore = defineStore('game', () => {
     const playedCards = hand.value.filter((c) => cardIds.includes(c.id))
     if (playedCards.length === 0) return
 
-    const result = evaluateHand(playedCards)
+    const result = evaluateHand(playedCards, handLevels.value)
     const breakdown = calculateScore(result, jokers.value, bossModifier)
 
     lastHandResult.value = { ...result, ...breakdown }
@@ -386,7 +600,7 @@ export const useGameStore = defineStore('game', () => {
 
     discardFromHand(cardIds)
 
-    const deficit = DEFAULT_HAND_SIZE - hand.value.length
+    const deficit = effectiveHandSize.value - hand.value.length
     if (deficit > 0) {
       drawCards(deficit)
     }
@@ -451,6 +665,8 @@ export const useGameStore = defineStore('game', () => {
       jokers: jokers.value,
       consumables: consumables.value,
       consumableSlots: consumableSlots.value,
+      handLevels: handLevels.value,
+      handSizeModifier: handSizeModifier.value,
       money: money.value,
       freeRerolls: freeRerolls.value,
       runStats: runStats.value,
@@ -484,6 +700,8 @@ export const useGameStore = defineStore('game', () => {
       jokers.value = (state.jokers as Joker[]) ?? []
       consumables.value = (state.consumables as ConsumableCard[]) ?? []
       consumableSlots.value = (state.consumableSlots as number) ?? 2
+      handLevels.value = (state.handLevels as HandLevelMap) ?? createInitialHandLevels()
+      handSizeModifier.value = (state.handSizeModifier as number) ?? 0
       money.value = (state.money as number) ?? 4
       freeRerolls.value = (state.freeRerolls as number) ?? 0
       runStats.value = (state.runStats as RunStats) ?? emptyStats()
@@ -519,6 +737,8 @@ export const useGameStore = defineStore('game', () => {
     jokers,
     consumables,
     consumableSlots,
+    handLevels,
+    handSizeModifier,
     roundReward,
     money,
     lastEarnings,
@@ -535,6 +755,7 @@ export const useGameStore = defineStore('game', () => {
     totalCards,
     activeBossModifier,
     maxJokerSlots,
+    effectiveHandSize,
     // Actions
     initRun,
     startBlind,
@@ -547,6 +768,7 @@ export const useGameStore = defineStore('game', () => {
     addConsumable,
     removeConsumable,
     sellConsumable,
+    useConsumable,
     spendMoney,
     openShop,
     buyJoker,

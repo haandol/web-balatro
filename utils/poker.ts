@@ -1,5 +1,5 @@
 import type { PlayingCard, Rank } from '~/types/card'
-import type { PokerHandType, HandResult, ScoreBreakdown } from '~/types/poker'
+import type { PokerHandType, HandResult, ScoreBreakdown, HandLevelMap } from '~/types/poker'
 import type { Joker, JokerTrigger } from '~/types/joker'
 import type { BossModifier } from '~/data/bossBlinds'
 import { RANK_CHIPS } from '~/data/cards'
@@ -120,9 +120,9 @@ function getStraightCards(cards: PlayingCard[]): PlayingCard[] | null {
 }
 
 /** 플레이된 카드에서 가장 높은 랭크의 포커 핸드를 판별한다. */
-export function evaluateHand(cards: PlayingCard[]): HandResult {
+export function evaluateHand(cards: PlayingCard[], handLevels?: HandLevelMap): HandResult {
   if (cards.length === 0) {
-    return { type: 'HIGH_CARD', name: 'High Card', baseChips: 5, baseMult: 1, scoringCards: [] }
+    return makeResult('HIGH_CARD', [], handLevels)
   }
 
   const counts = rankCounts(cards)
@@ -140,58 +140,59 @@ export function evaluateHand(cards: PlayingCard[]): HandResult {
     const ranks = cards.map((c) => c.rank)
     const isRoyal = ['A', 'K', 'Q', 'J', '10'].every((r) => ranks.includes(r as Rank))
     if (isRoyal) {
-      return makeResult('ROYAL_FLUSH', cards)
+      return makeResult('ROYAL_FLUSH', cards, handLevels)
     }
-    return makeResult('STRAIGHT_FLUSH', cards)
+    return makeResult('STRAIGHT_FLUSH', cards, handLevels)
   }
 
   // Four of a Kind
   if (groupSizes[0] === 4) {
-    return makeResult('FOUR_OF_A_KIND', groups[0][1])
+    return makeResult('FOUR_OF_A_KIND', groups[0][1], handLevels)
   }
 
   // Full House: 3 + 2
   if (groupSizes[0] === 3 && groupSizes[1] === 2) {
-    return makeResult('FULL_HOUSE', [...groups[0][1], ...groups[1][1]])
+    return makeResult('FULL_HOUSE', [...groups[0][1], ...groups[1][1]], handLevels)
   }
 
   // Flush
   if (flush) {
-    return makeResult('FLUSH', cards)
+    return makeResult('FLUSH', cards, handLevels)
   }
 
   // Straight
   if (isStraight) {
-    return makeResult('STRAIGHT', straightCards)
+    return makeResult('STRAIGHT', straightCards, handLevels)
   }
 
   // Three of a Kind
   if (groupSizes[0] === 3) {
-    return makeResult('THREE_OF_A_KIND', groups[0][1])
+    return makeResult('THREE_OF_A_KIND', groups[0][1], handLevels)
   }
 
   // Two Pair
   if (groupSizes[0] === 2 && groupSizes[1] === 2) {
-    return makeResult('TWO_PAIR', [...groups[0][1], ...groups[1][1]])
+    return makeResult('TWO_PAIR', [...groups[0][1], ...groups[1][1]], handLevels)
   }
 
   // One Pair
   if (groupSizes[0] === 2) {
-    return makeResult('ONE_PAIR', groups[0][1])
+    return makeResult('ONE_PAIR', groups[0][1], handLevels)
   }
 
   // High Card: 가장 높은 카드 1장만 scoring
   const highestCard = [...cards].sort((a, b) => RANK_ORDER[b.rank] - RANK_ORDER[a.rank])[0]
-  return makeResult('HIGH_CARD', [highestCard])
+  return makeResult('HIGH_CARD', [highestCard], handLevels)
 }
 
-function makeResult(type: PokerHandType, scoringCards: PlayingCard[]): HandResult {
+function makeResult(type: PokerHandType, scoringCards: PlayingCard[], handLevels?: HandLevelMap): HandResult {
   const base = HAND_BASE[type]
+  const level = handLevels?.[type]
   return {
     type,
     name: base.name,
-    baseChips: base.chips,
-    baseMult: base.mult,
+    baseChips: level?.baseChips ?? base.chips,
+    baseMult: level?.baseMult ?? base.mult,
     scoringCards,
   }
 }

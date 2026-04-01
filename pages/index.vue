@@ -57,7 +57,7 @@ const handPreview = computed(() => {
   if (selectedCardIds.value.size === 0) return null
   const selectedCards = hand.value.filter((c) => selectedCardIds.value.has(c.id))
   if (selectedCards.length === 0) return null
-  const result = evaluateHand(selectedCards)
+  const result = evaluateHand(selectedCards, gameStore.handLevels)
   const breakdown = calculateScore(result, gameStore.jokers, activeBossModifier.value)
   return { ...result, ...breakdown }
 })
