@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { BLIND_LABELS, getTargetScore } from '~/data/blinds'
-import { MAX_JOKER_SLOTS } from '~/data/jokers'
 import { isDebuffed } from '~/utils/boss'
 
 const gameStore = useGameStore()
@@ -24,6 +23,7 @@ const {
   jokers,
   currentBoss,
   activeBossModifier,
+  maxJokerSlots,
   lastSkipTag,
   freeRerolls,
   runStats,
@@ -148,9 +148,17 @@ onMounted(() => {
         <!-- Joker Slots -->
         <div
           v-if="gamePhase !== 'menu'"
-          class="mb-4"
+          class="mb-2"
         >
           <JokerSlots />
+        </div>
+
+        <!-- Consumable Slots -->
+        <div
+          v-if="gamePhase !== 'menu'"
+          class="mb-4"
+        >
+          <ConsumableSlots />
         </div>
 
         <!-- ===== MENU PHASE ===== -->
@@ -463,11 +471,11 @@ onMounted(() => {
                     <button
                       class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
                       :class="
-                        money >= getJokerPrice(joker) && jokers.length < MAX_JOKER_SLOTS
+                        money >= getJokerPrice(joker) && jokers.length < maxJokerSlots
                           ? 'bg-green-600 hover:bg-green-500 text-white active:scale-95'
                           : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                       "
-                      :disabled="money < getJokerPrice(joker) || jokers.length >= MAX_JOKER_SLOTS"
+                      :disabled="money < getJokerPrice(joker) || jokers.length >= maxJokerSlots"
                       @click="gameStore.buyJoker(index)"
                     >
                       BUY

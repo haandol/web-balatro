@@ -19,6 +19,62 @@ const suitSymbol: Record<string, string> = {
 }
 
 const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit === 'diamonds')
+const isStoneCard = computed(() => props.card.enhancement === 'stone')
+
+const enhancementBg = computed(() => {
+  switch (props.card.enhancement) {
+    case 'bonus':
+      return 'from-blue-100 to-blue-200'
+    case 'mult':
+      return 'from-red-100 to-red-200'
+    case 'wild':
+      return 'from-purple-100 to-purple-200'
+    case 'glass':
+      return 'from-white/60 to-white/30'
+    case 'steel':
+      return 'from-gray-200 to-gray-400'
+    case 'stone':
+      return 'from-stone-300 to-stone-500'
+    case 'gold':
+      return 'from-yellow-100 to-amber-200'
+    case 'lucky':
+      return 'from-green-100 to-green-200'
+    default:
+      return 'from-white to-gray-50'
+  }
+})
+
+const editionClass = computed(() => {
+  const e = props.card.edition
+  if (!e || e === 'base') return ''
+  switch (e) {
+    case 'foil':
+      return 'edition-foil'
+    case 'holographic':
+      return 'edition-holographic'
+    case 'polychrome':
+      return 'edition-polychrome'
+    case 'negative':
+      return 'edition-negative'
+    default:
+      return ''
+  }
+})
+
+const sealColor = computed(() => {
+  switch (props.card.seal) {
+    case 'gold':
+      return 'bg-yellow-400'
+    case 'blue':
+      return 'bg-blue-400'
+    case 'red':
+      return 'bg-red-400'
+    case 'purple':
+      return 'bg-purple-400'
+    default:
+      return null
+  }
+})
 </script>
 
 <template>
@@ -30,49 +86,68 @@ const isRed = computed(() => props.card.suit === 'hearts' || props.card.suit ===
   >
     <!-- Card body -->
     <div
-      class="relative w-[52px] h-[76px] md:w-[72px] md:h-[100px] rounded-lg border-2 overflow-hidden"
+      class="relative w-[52px] h-[76px] md:w-[72px] md:h-[100px] rounded-lg border-2 overflow-hidden bg-gradient-to-b"
       :class="[
         selected
-          ? 'border-gold shadow-[0_0_12px_rgba(255,215,0,0.5)] bg-gradient-to-b from-white to-amber-50'
-          : 'border-gray-300/80 bg-gradient-to-b from-white to-gray-50 group-hover:border-gray-400 group-hover:shadow-md',
+          ? 'border-gold shadow-[0_0_12px_rgba(255,215,0,0.5)]'
+          : 'border-gray-300/80 group-hover:border-gray-400 group-hover:shadow-md',
+        enhancementBg,
+        editionClass,
       ]"
     >
-      <!-- Top-left rank + suit -->
-      <div class="absolute top-1 left-1.5 flex flex-col items-center leading-none">
-        <span
-          class="text-[11px] md:text-sm font-bold"
-          :class="isRed ? 'text-red-600' : 'text-gray-900'"
-          >{{ card.rank }}</span
-        >
-        <span
-          class="text-[10px] md:text-xs -mt-0.5"
-          :class="isRed ? 'text-red-500' : 'text-gray-700'"
-          >{{ suitSymbol[card.suit] }}</span
-        >
-      </div>
+      <!-- Top-left rank + suit (hidden for Stone cards) -->
+      <template v-if="!isStoneCard">
+        <div class="absolute top-1 left-1.5 flex flex-col items-center leading-none">
+          <span
+            class="text-[11px] md:text-sm font-bold"
+            :class="isRed ? 'text-red-600' : 'text-gray-900'"
+            >{{ card.rank }}</span
+          >
+          <span
+            class="text-[10px] md:text-xs -mt-0.5"
+            :class="isRed ? 'text-red-500' : 'text-gray-700'"
+            >{{ suitSymbol[card.suit] }}</span
+          >
+        </div>
+      </template>
 
-      <!-- Center suit (large) -->
+      <!-- Center suit / Stone icon -->
       <div class="absolute inset-0 flex items-center justify-center">
         <span
+          v-if="isStoneCard"
+          class="text-2xl md:text-3xl text-stone-600"
+          >&#9670;</span
+        >
+        <span
+          v-else
           class="text-2xl md:text-3xl drop-shadow-sm"
           :class="isRed ? 'text-red-500' : 'text-gray-800'"
           >{{ suitSymbol[card.suit] }}</span
         >
       </div>
 
-      <!-- Bottom-right rank + suit (inverted) -->
-      <div class="absolute bottom-1 right-1.5 flex flex-col items-center leading-none rotate-180">
-        <span
-          class="text-[11px] md:text-sm font-bold"
-          :class="isRed ? 'text-red-600' : 'text-gray-900'"
-          >{{ card.rank }}</span
-        >
-        <span
-          class="text-[10px] md:text-xs -mt-0.5"
-          :class="isRed ? 'text-red-500' : 'text-gray-700'"
-          >{{ suitSymbol[card.suit] }}</span
-        >
-      </div>
+      <!-- Bottom-right rank + suit (hidden for Stone cards) -->
+      <template v-if="!isStoneCard">
+        <div class="absolute bottom-1 right-1.5 flex flex-col items-center leading-none rotate-180">
+          <span
+            class="text-[11px] md:text-sm font-bold"
+            :class="isRed ? 'text-red-600' : 'text-gray-900'"
+            >{{ card.rank }}</span
+          >
+          <span
+            class="text-[10px] md:text-xs -mt-0.5"
+            :class="isRed ? 'text-red-500' : 'text-gray-700'"
+            >{{ suitSymbol[card.suit] }}</span
+          >
+        </div>
+      </template>
+
+      <!-- Seal indicator -->
+      <div
+        v-if="sealColor"
+        class="absolute bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full border border-white/50 shadow-sm z-10"
+        :class="sealColor"
+      />
 
       <!-- Shine effect -->
       <div

@@ -1,4 +1,4 @@
-import type { Suit } from '~/types/card'
+import type { Suit, Edition } from '~/types/card'
 import type { PokerHandType } from '~/types/poker'
 
 export type JokerRarity = 'common' | 'uncommon' | 'rare'
@@ -24,6 +24,8 @@ export interface JokerDefinition {
   rarity: JokerRarity
   effect: JokerEffect
   sellPrice: number
+  edition?: Edition
+  eternal?: boolean
 }
 
 export interface Joker extends JokerDefinition {

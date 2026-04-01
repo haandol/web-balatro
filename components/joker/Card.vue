@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { Joker } from '~/types/joker'
+import { EDITIONS } from '~/data/cardModifiers'
 
 const props = defineProps<{
   joker: Joker
@@ -28,13 +29,38 @@ const rarityLabel = computed(() => {
       return 'text-red-400'
   }
 })
+
+const editionClass = computed(() => {
+  const e = props.joker.edition
+  if (!e || e === 'base') return ''
+  switch (e) {
+    case 'foil':
+      return 'edition-foil'
+    case 'holographic':
+      return 'edition-holographic'
+    case 'polychrome':
+      return 'edition-polychrome'
+    case 'negative':
+      return 'edition-negative'
+    default:
+      return ''
+  }
+})
+
+const editionName = computed(() => {
+  const e = props.joker.edition
+  if (!e || e === 'base') return null
+  return EDITIONS[e].name
+})
 </script>
 
 <template>
   <div class="relative">
     <button
       class="w-[56px] h-[76px] md:w-[72px] md:h-[96px] rounded-lg border-2 flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all duration-150 hover:scale-105 hover:shadow-lg"
-      :class="rarityColor"
+      :class="[rarityColor, editionClass]"
+      @mouseenter="showTooltip = true"
+      @mouseleave="showTooltip = false"
       @click="showTooltip = !showTooltip"
     >
       <span class="text-xl md:text-2xl">&#129313;</span>
@@ -63,6 +89,18 @@ const rarityLabel = computed(() => {
           :class="rarityLabel"
         >
           {{ joker.rarity }}
+        </div>
+        <div
+          v-if="editionName"
+          class="text-[10px] text-purple-300 mb-1"
+        >
+          {{ editionName }}
+        </div>
+        <div
+          v-if="joker.eternal"
+          class="text-[10px] text-amber-300 mb-1"
+        >
+          Eternal
         </div>
         <div class="text-xs text-gray-300">{{ joker.description }}</div>
       </div>

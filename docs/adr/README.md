@@ -19,6 +19,8 @@
 | [011](./011-blind-skip.md) | 블라인드 스킵 (F11) | Accepted | 2026-03-31 |
 | [012](./012-run-management.md) | 런 관리 (F12) | Accepted | 2026-03-31 |
 | [013](./013-game-state-persistence.md) | 게임 상태 저장 (F13) | Accepted | 2026-03-31 |
+| [014](./014-card-modifier-system.md) | 카드 수정자 시스템 (F14) | Accepted | 2026-04-01 |
+| [015](./015-consumable-slot-management.md) | 소모품 슬롯 관리 (F15) | Accepted | 2026-04-01 |
 
 ## 작성 규칙
 

@@ -1,16 +1,20 @@
 <script lang="ts" setup>
 const gameStore = useGameStore()
-const { jokers, maxJokerSlots } = storeToRefs(gameStore)
+const { consumables, consumableSlots, gamePhase } = storeToRefs(gameStore)
 
-const emptySlots = computed(() => Math.max(0, maxJokerSlots.value - jokers.value.length))
+const emptySlots = computed(() => Math.max(0, consumableSlots.value - consumables.value.length))
+const canUse = computed(() => gamePhase.value === 'playing')
 </script>
 
 <template>
   <div class="flex items-center justify-center gap-1.5 md:gap-2">
-    <JokerCard
-      v-for="joker in jokers"
-      :key="joker.id"
-      :joker="joker"
+    <ConsumableCard
+      v-for="card in consumables"
+      :key="card.id"
+      :card="card"
+      :can-use="canUse"
+      @use="gameStore.removeConsumable($event)"
+      @sell="gameStore.sellConsumable($event)"
     />
     <!-- Empty slots -->
     <div

@@ -10,3 +10,98 @@
   --color-gold: #ffd700;
   --color-gold-dark: #c5a200;
 }
+
+/* Edition visual effects — shared across card components */
+
+.edition-foil {
+  position: relative;
+}
+
+.edition-foil::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(192, 192, 192, 0.35) 50%, transparent 70%);
+  animation: foil-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@keyframes foil-shimmer {
+  0%,
+  100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+.edition-holographic {
+  position: relative;
+}
+
+.edition-holographic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 0, 0, 0.12),
+    rgba(255, 165, 0, 0.12),
+    rgba(255, 255, 0, 0.12),
+    rgba(0, 128, 0, 0.12),
+    rgba(0, 0, 255, 0.12),
+    rgba(128, 0, 128, 0.12)
+  );
+  animation: holo-shift 4s linear infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@keyframes holo-shift {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.edition-polychrome {
+  animation: poly-color 6s linear infinite;
+}
+
+@keyframes poly-color {
+  0% {
+    filter: hue-rotate(0deg) saturate(1.2);
+  }
+  100% {
+    filter: hue-rotate(360deg) saturate(1.2);
+  }
+}
+
+.edition-negative {
+  position: relative;
+}
+
+.edition-negative::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  mix-blend-mode: difference;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edition-foil::after,
+  .edition-holographic::after {
+    animation: none;
+  }
+
+  .edition-polychrome {
+    animation: none;
+  }
+}

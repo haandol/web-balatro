@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { PlayingCard } from '~/types/card'
 import type { HandResult, ScoreBreakdown } from '~/types/poker'
 import type { Joker } from '~/types/joker'
+import type { ConsumableCard } from '~/types/consumable'
 import { createDeck, shuffle, draw } from '~/utils/deck'
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { type BlindType, BLIND_ORDER, MAX_ANTE, getTargetScore, BLIND_REWARDS } from '~/data/blinds'
@@ -67,6 +68,10 @@ export const useGameStore = defineStore('game', () => {
   const lastSkipTag = ref<Tag | null>(null)
   const freeRerolls = ref(0)
 
+  // --- F15: Consumables ---
+  const consumables = ref<ConsumableCard[]>([])
+  const consumableSlots = ref(2)
+
   // --- F9: Shop ---
   const shopJokers = ref<Joker[]>([])
   const rerollCost = ref(5)
@@ -77,6 +82,10 @@ export const useGameStore = defineStore('game', () => {
   const handSize = computed(() => hand.value.length)
   const discardPileSize = computed(() => discardPile.value.length)
   const totalCards = computed(() => drawPile.value.length + hand.value.length + discardPile.value.length)
+  const maxJokerSlots = computed(() => {
+    const negativeCount = jokers.value.filter((j) => j.edition === 'negative').length
+    return MAX_JOKER_SLOTS + negativeCount
+  })
   const activeBossModifier = computed(() =>
     currentBlind.value === 'boss' ? (currentBoss.value?.modifier ?? null) : null
   )
@@ -101,6 +110,8 @@ export const useGameStore = defineStore('game', () => {
     runStats.value = emptyStats()
     lastSkipTag.value = null
     freeRerolls.value = 0
+    consumables.value = []
+    consumableSlots.value = 2
     shopJokers.value = []
     rerollCost.value = BASE_REROLL_COST
 
@@ -207,9 +218,28 @@ export const useGameStore = defineStore('game', () => {
 
   function sellJoker(jokerId: string) {
     const joker = jokers.value.find((j) => j.id === jokerId)
-    if (!joker) return
+    if (!joker || joker.eternal) return
     money.value += joker.sellPrice
     removeJoker(jokerId)
+  }
+
+  // --- F15: Consumable Actions ---
+
+  function addConsumable(card: ConsumableCard): boolean {
+    if (consumables.value.length >= consumableSlots.value) return false
+    consumables.value = [...consumables.value, card]
+    return true
+  }
+
+  function removeConsumable(cardId: string) {
+    consumables.value = consumables.value.filter((c) => c.id !== cardId)
+  }
+
+  function sellConsumable(cardId: string) {
+    const card = consumables.value.find((c) => c.id === cardId)
+    if (!card) return
+    money.value += card.sellPrice
+    removeConsumable(cardId)
   }
 
   // --- F9: Shop Actions ---
@@ -221,10 +251,22 @@ export const useGameStore = defineStore('game', () => {
     return 'common'
   }
 
+  function getOwnedJokerNames(): Set<string> {
+    const names = new Set<string>()
+    for (const j of jokers.value) names.add(j.name)
+    for (const j of shopJokers.value) names.add(j.name)
+    return names
+  }
+
   function generateShopJoker(): Joker {
     const rarity = pickRarity()
-    const pool = JOKER_DEFINITIONS.filter((d) => d.rarity === rarity)
-    const def = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : JOKER_DEFINITIONS[0]
+    const owned = getOwnedJokerNames()
+    const pool = JOKER_DEFINITIONS.filter((d) => d.rarity === rarity && !owned.has(d.name))
+    const fallbackPool = pool.length > 0 ? pool : JOKER_DEFINITIONS.filter((d) => !owned.has(d.name))
+    const def =
+      fallbackPool.length > 0
+        ? fallbackPool[Math.floor(Math.random() * fallbackPool.length)]
+        : JOKER_DEFINITIONS[Math.floor(Math.random() * JOKER_DEFINITIONS.length)]
     return { ...def, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
   }
 
@@ -242,7 +284,7 @@ export const useGameStore = defineStore('game', () => {
   function buyJoker(index: number): boolean {
     const joker = shopJokers.value[index]
     if (!joker) return false
-    if (jokers.value.length >= MAX_JOKER_SLOTS) return false
+    if (jokers.value.length >= maxJokerSlots.value) return false
     const price = joker.sellPrice * 2
     if (!spendMoney(price)) return false
     jokers.value = [...jokers.value, joker]
@@ -270,7 +312,7 @@ export const useGameStore = defineStore('game', () => {
   // --- F6: Joker Actions ---
 
   function addJoker(joker: Joker): boolean {
-    if (jokers.value.length >= MAX_JOKER_SLOTS) return false
+    if (jokers.value.length >= maxJokerSlots.value) return false
     jokers.value = [...jokers.value, joker]
     return true
   }
@@ -407,6 +449,8 @@ export const useGameStore = defineStore('game', () => {
       targetScore: targetScore.value,
       roundReward: roundReward.value,
       jokers: jokers.value,
+      consumables: consumables.value,
+      consumableSlots: consumableSlots.value,
       money: money.value,
       freeRerolls: freeRerolls.value,
       runStats: runStats.value,
@@ -438,6 +482,8 @@ export const useGameStore = defineStore('game', () => {
       targetScore.value = (state.targetScore as number) ?? 0
       roundReward.value = (state.roundReward as number) ?? 0
       jokers.value = (state.jokers as Joker[]) ?? []
+      consumables.value = (state.consumables as ConsumableCard[]) ?? []
+      consumableSlots.value = (state.consumableSlots as number) ?? 2
       money.value = (state.money as number) ?? 4
       freeRerolls.value = (state.freeRerolls as number) ?? 0
       runStats.value = (state.runStats as RunStats) ?? emptyStats()
@@ -471,6 +517,8 @@ export const useGameStore = defineStore('game', () => {
     lastHandResult,
     gamePhase,
     jokers,
+    consumables,
+    consumableSlots,
     roundReward,
     money,
     lastEarnings,
@@ -486,6 +534,7 @@ export const useGameStore = defineStore('game', () => {
     discardPileSize,
     totalCards,
     activeBossModifier,
+    maxJokerSlots,
     // Actions
     initRun,
     startBlind,
@@ -495,6 +544,9 @@ export const useGameStore = defineStore('game', () => {
     removeJoker,
     reorderJokers,
     sellJoker,
+    addConsumable,
+    removeConsumable,
+    sellConsumable,
     spendMoney,
     openShop,
     buyJoker,
