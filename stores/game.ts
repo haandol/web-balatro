@@ -18,6 +18,9 @@ import { applyPlanetEffect } from '~/utils/planet'
 import type { PokerHandType } from '~/types/poker'
 import type { Rank, Enhancement } from '~/types/card'
 import { SUITS, RANKS } from '~/data/cards'
+import type { BoosterPack, OpenPackState } from '~/types/boosterPack'
+import { rollShopPack } from '~/data/boosterPacks'
+import { generatePackContents } from '~/utils/boosterPack'
 
 export type GamePhase = 'menu' | 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -88,6 +91,10 @@ export const useGameStore = defineStore('game', () => {
   const rerollCost = ref(5)
   const BASE_REROLL_COST = 5
 
+  // --- F20: Booster Packs ---
+  const shopPacks = ref<BoosterPack[]>([])
+  const openPack = ref<OpenPackState | null>(null)
+
   // --- Getters ---
   const drawPileSize = computed(() => drawPile.value.length)
   const handSize = computed(() => hand.value.length)
@@ -127,6 +134,8 @@ export const useGameStore = defineStore('game', () => {
     handLevels.value = createInitialHandLevels()
     handSizeModifier.value = 0
     shopJokers.value = []
+    shopPacks.value = []
+    openPack.value = null
     rerollCost.value = BASE_REROLL_COST
 
     // 덱 초기화
@@ -486,6 +495,7 @@ export const useGameStore = defineStore('game', () => {
 
   function generateShop() {
     shopJokers.value = [generateShopJoker(), generateShopJoker()]
+    shopPacks.value = [rollShopPack(), rollShopPack()]
     rerollCost.value = BASE_REROLL_COST
   }
 
@@ -519,8 +529,54 @@ export const useGameStore = defineStore('game', () => {
 
   function leaveShop() {
     shopJokers.value = []
+    shopPacks.value = []
+    openPack.value = null
     advanceBlind()
     autoSave()
+  }
+
+  // --- F20: Booster Pack Actions ---
+
+  function buyPack(index: number): boolean {
+    const pack = shopPacks.value[index]
+    if (!pack) return false
+    if (!spendMoney(pack.cost)) return false
+    const cards = generatePackContents(pack)
+    openPack.value = {
+      pack,
+      cards,
+      selectedIds: [],
+      selectionsRemaining: pack.selectCount,
+    }
+    shopPacks.value = shopPacks.value.filter((_, i) => i !== index)
+    return true
+  }
+
+  function selectPackCard(cardId: string): boolean {
+    if (!openPack.value || openPack.value.selectionsRemaining <= 0) return false
+    const card = openPack.value.cards.find((c) => c.id === cardId)
+    if (!card) return false
+    if (openPack.value.selectedIds.includes(cardId)) return false
+
+    // Try to add to consumable slots
+    const added = addConsumable(card)
+    if (!added) return false
+
+    openPack.value = {
+      ...openPack.value,
+      selectedIds: [...openPack.value.selectedIds, cardId],
+      selectionsRemaining: openPack.value.selectionsRemaining - 1,
+    }
+
+    // Auto-close pack when no selections remaining
+    if (openPack.value.selectionsRemaining <= 0) {
+      openPack.value = null
+    }
+    return true
+  }
+
+  function skipPack() {
+    openPack.value = null
   }
 
   // --- F6: Joker Actions ---
@@ -743,6 +799,8 @@ export const useGameStore = defineStore('game', () => {
     money,
     lastEarnings,
     shopJokers,
+    shopPacks,
+    openPack,
     rerollCost,
     currentBoss,
     lastSkipTag,
@@ -774,6 +832,9 @@ export const useGameStore = defineStore('game', () => {
     buyJoker,
     rerollShop,
     leaveShop,
+    buyPack,
+    selectPackCard,
+    skipPack,
     drawCards,
     reshuffleDeck,
     discardFromHand,

@@ -2,6 +2,7 @@
 import { evaluateHand, calculateScore } from '~/utils/poker'
 import { BLIND_LABELS, getTargetScore } from '~/data/blinds'
 import { isDebuffed } from '~/utils/boss'
+import { PACK_TYPE_NAMES, PACK_SIZE_LABELS } from '~/data/boosterPacks'
 
 const gameStore = useGameStore()
 const {
@@ -27,6 +28,8 @@ const {
   lastSkipTag,
   freeRerolls,
   runStats,
+  shopPacks,
+  openPack,
 } = storeToRefs(gameStore)
 
 const hasSavedGame = ref(false)
@@ -490,6 +493,72 @@ onMounted(() => {
                 </div>
               </div>
 
+              <!-- Booster Packs -->
+              <div class="mb-6">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-3">Booster Packs</div>
+                <div
+                  v-if="shopPacks.length > 0"
+                  class="flex justify-center gap-4"
+                >
+                  <div
+                    v-for="(pack, index) in shopPacks"
+                    :key="pack.id"
+                    class="flex flex-col items-center gap-2"
+                  >
+                    <div
+                      class="w-16 h-22 rounded-lg border-2 flex flex-col items-center justify-center text-center px-1"
+                      :class="{
+                        'border-purple-500/60 bg-purple-900/40': pack.type === 'arcana',
+                        'border-cyan-500/60 bg-cyan-900/40': pack.type === 'celestial',
+                        'border-blue-500/60 bg-blue-900/40': pack.type === 'spectral',
+                      }"
+                    >
+                      <div
+                        class="text-[10px] font-bold leading-tight"
+                        :class="{
+                          'text-purple-300': pack.type === 'arcana',
+                          'text-cyan-300': pack.type === 'celestial',
+                          'text-blue-300': pack.type === 'spectral',
+                        }"
+                      >
+                        {{ PACK_SIZE_LABELS[pack.size] }}
+                      </div>
+                      <div
+                        class="text-[9px] leading-tight mt-0.5"
+                        :class="{
+                          'text-purple-400': pack.type === 'arcana',
+                          'text-cyan-400': pack.type === 'celestial',
+                          'text-blue-400': pack.type === 'spectral',
+                        }"
+                      >
+                        {{ PACK_TYPE_NAMES[pack.type] }}
+                      </div>
+                      <div class="text-[8px] text-gray-500 mt-1">{{ pack.totalCards }} cards</div>
+                      <div class="text-[8px] text-gray-500">pick {{ pack.selectCount }}</div>
+                    </div>
+                    <div class="text-xs text-gray-400">${{ pack.cost }}</div>
+                    <button
+                      class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
+                      :class="
+                        money >= pack.cost
+                          ? 'bg-green-600 hover:bg-green-500 text-white active:scale-95'
+                          : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                      "
+                      :disabled="money < pack.cost"
+                      @click="gameStore.buyPack(index)"
+                    >
+                      BUY
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="text-gray-600 text-sm py-4"
+                >
+                  Sold out
+                </div>
+              </div>
+
               <!-- Reroll & Leave -->
               <div class="flex items-center justify-center gap-3">
                 <button
@@ -514,6 +583,65 @@ onMounted(() => {
             </div>
           </div>
         </template>
+
+        <!-- ===== PACK OPENING OVERLAY ===== -->
+        <div
+          v-if="openPack"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        >
+          <div class="bg-gray-900/95 border border-white/10 rounded-2xl px-6 py-6 text-center max-w-md w-full mx-4">
+            <div
+              class="font-pixel text-base mb-1"
+              :class="{
+                'text-purple-400': openPack.pack.type === 'arcana',
+                'text-cyan-400': openPack.pack.type === 'celestial',
+                'text-blue-400': openPack.pack.type === 'spectral',
+              }"
+            >
+              {{ PACK_SIZE_LABELS[openPack.pack.size] }} {{ PACK_TYPE_NAMES[openPack.pack.type] }}
+            </div>
+            <div class="text-gray-400 text-xs mb-4">
+              Choose {{ openPack.selectionsRemaining }} card{{ openPack.selectionsRemaining > 1 ? 's' : '' }}
+            </div>
+
+            <!-- Pack cards -->
+            <div class="flex justify-center gap-3 mb-5">
+              <button
+                v-for="card in openPack.cards"
+                :key="card.id"
+                class="w-20 h-28 rounded-lg border-2 flex flex-col items-center justify-center text-center px-1.5 transition-all duration-150"
+                :class="
+                  openPack.selectedIds.includes(card.id)
+                    ? 'border-gold bg-gold/20 -translate-y-2 shadow-lg shadow-gold/20'
+                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                "
+                @click="gameStore.selectPackCard(card.id)"
+              >
+                <div
+                  class="text-[10px] font-bold"
+                  :class="{
+                    'text-purple-300': card.type === 'tarot',
+                    'text-cyan-300': card.type === 'planet',
+                    'text-blue-300': card.type === 'spectral',
+                  }"
+                >
+                  {{ card.name }}
+                </div>
+                <div class="text-[8px] text-gray-400 mt-1 leading-tight">
+                  {{ card.description }}
+                </div>
+              </button>
+            </div>
+
+            <!-- Skip button -->
+            <button
+              class="bg-gray-600 hover:bg-gray-500 text-white font-bold px-6 py-2 rounded-lg transition-all duration-200 active:scale-95 text-xs"
+              @click="gameStore.skipPack()"
+            >
+              SKIP
+            </button>
+          </div>
+        </div>
 
         <!-- ===== WON PHASE ===== -->
         <template v-else-if="gamePhase === 'won'">

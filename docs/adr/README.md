@@ -23,6 +23,7 @@
 | [015](./015-consumable-slot-management.md) | 소모품 슬롯 관리 (F15) | Accepted | 2026-04-01 |
 | [016](./016-planet-cards.md) | 플래닛 카드 (F17) | Accepted | 2026-04-01 |
 | [017](./017-spectral-cards.md) | 스펙트럴 카드 (F18) | Accepted | 2026-04-01 |
+| [018](./018-booster-packs.md) | 확장 부스터 팩 (F20) | Proposed | 2026-04-01 |
 
 ## 작성 규칙
 
