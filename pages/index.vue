@@ -30,6 +30,8 @@ const {
   runStats,
   shopPacks,
   openPack,
+  shopVoucher,
+  shopDiscountPercent,
 } = storeToRefs(gameStore)
 
 const hasSavedGame = ref(false)
@@ -112,7 +114,11 @@ function handleContinue() {
 }
 
 function getJokerPrice(joker: { sellPrice: number }) {
-  return joker.sellPrice * 2
+  return gameStore.applyShopDiscount(joker.sellPrice * 2)
+}
+
+function getPackPrice(pack: { cost: number }) {
+  return gameStore.applyShopDiscount(pack.cost)
 }
 
 function isCardDebuffed(card: { suit: string; rank: string }) {
@@ -471,7 +477,14 @@ onMounted(() => {
                     class="flex flex-col items-center gap-2"
                   >
                     <JokerCard :joker="joker" />
-                    <div class="text-xs text-gray-400">${{ getJokerPrice(joker) }}</div>
+                    <div class="text-xs text-gray-400">
+                      <span
+                        v-if="shopDiscountPercent > 0"
+                        class="line-through text-gray-600 mr-1"
+                        >${{ joker.sellPrice * 2 }}</span
+                      >
+                      ${{ getJokerPrice(joker) }}
+                    </div>
                     <button
                       class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
                       :class="
@@ -537,20 +550,64 @@ onMounted(() => {
                       <div class="text-[8px] text-gray-500 mt-1">{{ pack.totalCards }} cards</div>
                       <div class="text-[8px] text-gray-500">pick {{ pack.selectCount }}</div>
                     </div>
-                    <div class="text-xs text-gray-400">${{ pack.cost }}</div>
+                    <div class="text-xs text-gray-400">
+                      <span
+                        v-if="shopDiscountPercent > 0"
+                        class="line-through text-gray-600 mr-1"
+                        >${{ pack.cost }}</span
+                      >
+                      ${{ getPackPrice(pack) }}
+                    </div>
                     <button
                       class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
                       :class="
-                        money >= pack.cost
+                        money >= getPackPrice(pack)
                           ? 'bg-green-600 hover:bg-green-500 text-white active:scale-95'
                           : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                       "
-                      :disabled="money < pack.cost"
+                      :disabled="money < getPackPrice(pack)"
                       @click="gameStore.buyPack(index)"
                     >
                       BUY
                     </button>
                   </div>
+                </div>
+                <div
+                  v-else
+                  class="text-gray-600 text-sm py-4"
+                >
+                  Sold out
+                </div>
+              </div>
+
+              <!-- Voucher -->
+              <div class="mb-6">
+                <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-3">Voucher</div>
+                <div
+                  v-if="shopVoucher"
+                  class="flex flex-col items-center gap-2"
+                >
+                  <div
+                    class="w-28 h-16 rounded-lg border-2 border-amber-500/60 bg-amber-900/30 flex flex-col items-center justify-center text-center px-2"
+                  >
+                    <div class="text-xs font-bold text-amber-300">{{ shopVoucher.name }}</div>
+                    <div class="text-[8px] text-amber-400/70 mt-0.5 leading-tight">
+                      {{ shopVoucher.description }}
+                    </div>
+                  </div>
+                  <div class="text-xs text-gray-400">${{ shopVoucher.cost }}</div>
+                  <button
+                    class="text-xs px-3 py-1 rounded font-bold transition-all duration-150"
+                    :class="
+                      money >= shopVoucher.cost
+                        ? 'bg-amber-600 hover:bg-amber-500 text-white active:scale-95'
+                        : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                    "
+                    :disabled="money < shopVoucher.cost"
+                    @click="gameStore.buyVoucher()"
+                  >
+                    BUY
+                  </button>
                 </div>
                 <div
                   v-else

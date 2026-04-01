@@ -23,6 +23,7 @@ import { rollShopPack } from '~/data/boosterPacks'
 import { generatePackContents } from '~/utils/boosterPack'
 import { TAROT_DEFINITIONS } from '~/data/tarots'
 import { createRandomPlanetConsumable } from '~/utils/planet'
+import { VOUCHER_DEFINITIONS, getAvailableVouchers, type VoucherDefinition } from '~/data/vouchers'
 
 export type GamePhase = 'menu' | 'blind_select' | 'playing' | 'round_end' | 'shop' | 'won' | 'lost'
 
@@ -97,16 +98,68 @@ export const useGameStore = defineStore('game', () => {
   const shopPacks = ref<BoosterPack[]>([])
   const openPack = ref<OpenPackState | null>(null)
 
+  // --- F19: Vouchers ---
+  const purchasedVouchers = ref<string[]>([])
+  const shopVoucher = ref<VoucherDefinition | null>(null)
+
   // --- Getters ---
   const drawPileSize = computed(() => drawPile.value.length)
   const handSize = computed(() => hand.value.length)
   const discardPileSize = computed(() => discardPile.value.length)
   const totalCards = computed(() => drawPile.value.length + hand.value.length + discardPile.value.length)
-  const effectiveHandSize = computed(() => Math.max(1, DEFAULT_HAND_SIZE + handSizeModifier.value))
+  const voucherHandSizeBonus = computed(() =>
+    purchasedVouchers.value.reduce((sum, id) => {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      return v?.effect.type === 'hand_size' ? sum + v.effect.value : sum
+    }, 0)
+  )
+  const effectiveHandSize = computed(() =>
+    Math.max(1, DEFAULT_HAND_SIZE + handSizeModifier.value + voucherHandSizeBonus.value)
+  )
   const maxJokerSlots = computed(() => {
     const negativeCount = jokers.value.filter((j) => j.edition === 'negative').length
     return MAX_JOKER_SLOTS + negativeCount
   })
+  const voucherBonusHands = computed(() =>
+    purchasedVouchers.value.reduce((sum, id) => {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      return v?.effect.type === 'bonus_hands' ? sum + v.effect.value : sum
+    }, 0)
+  )
+  const voucherBonusDiscards = computed(() =>
+    purchasedVouchers.value.reduce((sum, id) => {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      return v?.effect.type === 'bonus_discards' ? sum + v.effect.value : sum
+    }, 0)
+  )
+  const interestCap = computed(() => {
+    let cap = 5
+    for (const id of purchasedVouchers.value) {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      if (v?.effect.type === 'interest_cap' && v.effect.value > cap) cap = v.effect.value
+    }
+    return cap
+  })
+  const rerollDiscount = computed(() =>
+    purchasedVouchers.value.reduce((sum, id) => {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      return v?.effect.type === 'reroll_discount' ? sum + v.effect.value : sum
+    }, 0)
+  )
+  const shopDiscountPercent = computed(() => {
+    let discount = 0
+    for (const id of purchasedVouchers.value) {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      if (v?.effect.type === 'shop_discount' && v.effect.value > discount) discount = v.effect.value
+    }
+    return discount
+  })
+  const shopJokerSlotBonus = computed(() =>
+    purchasedVouchers.value.reduce((sum, id) => {
+      const v = VOUCHER_DEFINITIONS.find((d) => d.id === id)
+      return v?.effect.type === 'shop_slots' ? sum + v.effect.value : sum
+    }, 0)
+  )
   const activeBossModifier = computed(() =>
     currentBlind.value === 'boss' ? (currentBoss.value?.modifier ?? null) : null
   )
@@ -139,6 +192,8 @@ export const useGameStore = defineStore('game', () => {
     shopPacks.value = []
     openPack.value = null
     rerollCost.value = BASE_REROLL_COST
+    purchasedVouchers.value = []
+    shopVoucher.value = null
 
     // 덱 초기화
     const deck = shuffle(createDeck())
@@ -175,10 +230,12 @@ export const useGameStore = defineStore('game', () => {
     lastHandResult.value = null
     lastSkipTag.value = null
 
-    // 핸드/디스카드 초기화
-    handsRemaining.value = DEFAULT_HANDS
+    // 핸드/디스카드 초기화 (바우처 보너스 반영)
+    handsRemaining.value = DEFAULT_HANDS + voucherBonusHands.value
     discardsRemaining.value =
-      currentBlind.value === 'boss' && currentBoss.value?.modifier.type === 'no_discards' ? 0 : DEFAULT_DISCARDS
+      currentBlind.value === 'boss' && currentBoss.value?.modifier.type === 'no_discards'
+        ? 0
+        : DEFAULT_DISCARDS + voucherBonusDiscards.value
 
     // 모든 카드를 draw pile로 모아서 리셔플
     drawPile.value = shuffle([...drawPile.value, ...hand.value, ...discardPile.value])
@@ -641,10 +698,25 @@ export const useGameStore = defineStore('game', () => {
     return { ...def, id: `joker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
   }
 
+  function generateShopVoucher() {
+    const available = getAvailableVouchers(purchasedVouchers.value)
+    if (available.length === 0) {
+      shopVoucher.value = null
+      return
+    }
+    shopVoucher.value = available[Math.floor(Math.random() * available.length)]
+  }
+
   function generateShop() {
-    shopJokers.value = [generateShopJoker(), generateShopJoker()]
+    const jokerCount = 2 + shopJokerSlotBonus.value
+    const jokerList: Joker[] = []
+    for (let i = 0; i < jokerCount; i++) {
+      jokerList.push(generateShopJoker())
+    }
+    shopJokers.value = jokerList
     shopPacks.value = [rollShopPack(), rollShopPack()]
-    rerollCost.value = BASE_REROLL_COST
+    rerollCost.value = Math.max(0, BASE_REROLL_COST - rerollDiscount.value)
+    generateShopVoucher()
   }
 
   function openShop() {
@@ -657,7 +729,7 @@ export const useGameStore = defineStore('game', () => {
     const joker = shopJokers.value[index]
     if (!joker) return false
     if (jokers.value.length >= maxJokerSlots.value) return false
-    const price = joker.sellPrice * 2
+    const price = applyShopDiscount(joker.sellPrice * 2)
     if (!spendMoney(price)) return false
     jokers.value = [...jokers.value, joker]
     shopJokers.value = shopJokers.value.filter((_, i) => i !== index)
@@ -671,7 +743,12 @@ export const useGameStore = defineStore('game', () => {
       if (!spendMoney(rerollCost.value)) return false
       rerollCost.value += 1
     }
-    shopJokers.value = [generateShopJoker(), generateShopJoker()]
+    const jokerCount = 2 + shopJokerSlotBonus.value
+    const jokerList: Joker[] = []
+    for (let i = 0; i < jokerCount; i++) {
+      jokerList.push(generateShopJoker())
+    }
+    shopJokers.value = jokerList
     return true
   }
 
@@ -679,8 +756,31 @@ export const useGameStore = defineStore('game', () => {
     shopJokers.value = []
     shopPacks.value = []
     openPack.value = null
+    shopVoucher.value = null
     advanceBlind()
     autoSave()
+  }
+
+  function applyShopDiscount(price: number): number {
+    if (shopDiscountPercent.value === 0) return price
+    return Math.max(1, Math.round(price * (1 - shopDiscountPercent.value / 100)))
+  }
+
+  function buyVoucher(): boolean {
+    if (!shopVoucher.value) return false
+    const cost = shopVoucher.value.cost
+    if (!spendMoney(cost)) return false
+
+    const v = shopVoucher.value
+    purchasedVouchers.value = [...purchasedVouchers.value, v.id]
+
+    // 즉시 효과 적용 (consumable_slots는 ref 직접 수정)
+    if (v.effect.type === 'consumable_slots') {
+      consumableSlots.value += v.effect.value
+    }
+
+    shopVoucher.value = null
+    return true
   }
 
   // --- F20: Booster Pack Actions ---
@@ -688,7 +788,7 @@ export const useGameStore = defineStore('game', () => {
   function buyPack(index: number): boolean {
     const pack = shopPacks.value[index]
     if (!pack) return false
-    if (!spendMoney(pack.cost)) return false
+    if (!spendMoney(applyShopDiscount(pack.cost))) return false
     const cards = generatePackContents(pack)
     openPack.value = {
       pack,
@@ -824,7 +924,7 @@ export const useGameStore = defineStore('game', () => {
     // 블라인드 클리어 판정
     if (roundScore.value >= targetScore.value) {
       const reward = BLIND_REWARDS[currentBlind.value]
-      const earnings = calculateRoundEarnings(reward, handsRemaining.value, money.value)
+      const earnings = calculateRoundEarnings(reward, handsRemaining.value, money.value, interestCap.value)
       roundReward.value = earnings.total
       lastEarnings.value = earnings
       money.value += earnings.total
@@ -888,6 +988,7 @@ export const useGameStore = defineStore('game', () => {
       runStats: runStats.value,
       shopJokers: shopJokers.value,
       rerollCost: rerollCost.value,
+      purchasedVouchers: purchasedVouchers.value,
     }
   }
 
@@ -923,6 +1024,7 @@ export const useGameStore = defineStore('game', () => {
       runStats.value = (state.runStats as RunStats) ?? emptyStats()
       shopJokers.value = (state.shopJokers as Joker[]) ?? []
       rerollCost.value = (state.rerollCost as number) ?? BASE_REROLL_COST
+      purchasedVouchers.value = (state.purchasedVouchers as string[]) ?? []
       lastHandResult.value = null
       lastEarnings.value = null
       lastSkipTag.value = null
@@ -962,6 +1064,8 @@ export const useGameStore = defineStore('game', () => {
     shopPacks,
     openPack,
     rerollCost,
+    purchasedVouchers,
+    shopVoucher,
     currentBoss,
     lastSkipTag,
     freeRerolls,
@@ -974,6 +1078,7 @@ export const useGameStore = defineStore('game', () => {
     activeBossModifier,
     maxJokerSlots,
     effectiveHandSize,
+    shopDiscountPercent,
     // Actions
     initRun,
     startBlind,
@@ -995,6 +1100,8 @@ export const useGameStore = defineStore('game', () => {
     buyPack,
     selectPackCard,
     skipPack,
+    buyVoucher,
+    applyShopDiscount,
     drawCards,
     reshuffleDeck,
     discardFromHand,
