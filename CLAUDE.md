@@ -5,7 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 프로젝트 구조, 아키텍처, 코딩 규칙 등 모든 상세 가이드는 AGENTS.md 파일을 참조하세요.
 
 - [AGENTS.md](./AGENTS.md) — Project overview, tech stack, architecture, conventions
-- [SPEC.md](./SPEC.md) — Full Balatro game rules and mechanics specification
+- [docs/specs/](./docs/specs/) — Game rules, mechanics specification, PRD documents
+  - [research.md](./docs/specs/research.md) — Full Balatro game rules and mechanics research
+  - [web-balatro.alps.md](./docs/specs/web-balatro.alps.md) — ALPS (MVP feature specification)
+  - [phase1-prd.md](./docs/specs/phase1-prd.md) — Phase 1 PRD (core gameplay loop)
+  - [phase2-prd.md](./docs/specs/phase2-prd.md) — Phase 2 PRD (card modifiers, consumables, vouchers)
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — Commit, branch, PR rules
 
 ## ALPS Feature 구현 규칙

@@ -9,7 +9,11 @@ You are working on the **web-balatro** project — a Balatro web game clone.
 ### Context Setup
 
 1. This is a **Nuxt 4 SPA** (CSR only, no SSR/server interactions) with **TypeScript**, **TailwindCSS**, and **Pinia**.
-2. Game rules and mechanics are documented in [SPEC.md](./SPEC.md) — read it before implementing game logic.
+2. Game rules and mechanics are documented in [docs/specs/](./docs/specs/) — read the PRD documents before implementing game logic.
+   - [research.md](./docs/specs/research.md) — Full Balatro game rules and mechanics research
+   - [web-balatro.alps.md](./docs/specs/web-balatro.alps.md) — ALPS (MVP feature specification)
+   - [phase1-prd.md](./docs/specs/phase1-prd.md) — Phase 1 PRD (core gameplay loop)
+   - [phase2-prd.md](./docs/specs/phase2-prd.md) — Phase 2 PRD (card modifiers, consumables, vouchers)
 
 ### Verification (run before reporting back)
 
